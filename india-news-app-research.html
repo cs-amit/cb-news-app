@@ -1,0 +1,358 @@
+<title>India News App — Differentiation Research</title>
+<style>
+  :root {
+    --paper: #F7F5EF;
+    --surface: #FFFFFF;
+    --ink: #252A31;
+    --muted: #716E64;
+    --accent: #0E6B6F;
+    --accent-soft: #E4EEED;
+    --rule: #E4E1D5;
+    --flag: #8A4B2D;
+    --flag-soft: #F3E9E2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #15181D;
+      --surface: #1D2127;
+      --ink: #E7E4DC;
+      --muted: #9A968A;
+      --accent: #56B0AC;
+      --accent-soft: #1E2E2E;
+      --rule: #2C313A;
+      --flag: #D08A5F;
+      --flag-soft: #2E2620;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #15181D;
+    --surface: #1D2127;
+    --ink: #E7E4DC;
+    --muted: #9A968A;
+    --accent: #56B0AC;
+    --accent-soft: #1E2E2E;
+    --rule: #2C313A;
+    --flag: #D08A5F;
+    --flag-soft: #2E2620;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Charter, "Bitstream Charter", Cambria, Georgia, serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    margin: 0;
+    padding: 3rem 1.25rem 5rem;
+  }
+  main { max-width: 46rem; margin: 0 auto; }
+  h1, h2, h3, h4, .sans {
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  }
+  h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    margin: 0.5rem 0 0.75rem;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
+  h4 { font-size: 0.95rem; margin: 1.25rem 0 0.35rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .eyebrow {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .meta {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+  }
+  header p.lede {
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  section {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.75rem;
+    margin-top: 2.5rem;
+  }
+  .secnum {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+  .tldr {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 1.1rem 1.3rem;
+    margin: 0 0 1rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .tldr p { margin: 0 0 0.6rem; }
+  .tldr p:last-child { margin: 0; }
+  .tablewrap { overflow-x: auto; margin: 1.25rem 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 2px solid var(--rule);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    vertical-align: bottom;
+  }
+  td {
+    border-bottom: 1px solid var(--rule);
+    padding: 0.6rem 0.75rem 0.6rem 0;
+    vertical-align: top;
+  }
+  td strong { font-weight: 600; }
+  .chip {
+    display: inline-block;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .chip.warn { background: var(--flag-soft); color: var(--flag); }
+  .angle {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1.25rem 1.4rem;
+    margin: 1.25rem 0;
+  }
+  .angle h3 { margin-top: 0; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.45rem; }
+  .quote {
+    font-style: italic;
+    color: var(--muted);
+    border-left: 2px solid var(--rule);
+    padding-left: 1rem;
+    margin: 1rem 0;
+  }
+  .rec {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 1.5rem 1.6rem;
+    margin: 1.5rem 0;
+  }
+  .rec h3 { margin-top: 0; }
+  .kicker { font-weight: 600; }
+  .footnote { font-size: 0.85rem; color: var(--muted); font-family: "Segoe UI", system-ui, sans-serif; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<main>
+<header>
+  <span class="eyebrow">Product research brief</span>
+  <h1>Beyond Ground News: positioning a source-transparency news app for India</h1>
+  <p class="lede">Competitive landscape, structural gaps in the Ground News model for Indian media, evaluation of three differentiation angles, and a prioritized v1 recommendation for a 3-week solo build.</p>
+  <p class="meta">Prepared August 2026 · English-language Indian outlets, v1 scope · Budget cap ₹5,000</p>
+</header>
+
+<div class="tldr">
+  <p class="kicker sans">TL;DR — the recommendation in one paragraph</p>
+  <p>Don't compete on "see left vs. right coverage" — that axis is imported, and Ground News's own data shows how badly it fits India (it rates NDTV and Times of India both "Lean Right" using US raters). Anchor v1 on <strong>ownership transparency with conflict-of-interest flags</strong> (the "who owns your news" story is already viral content in India and no app owns it), display lean on a single <strong>India-native axis: government-critical ↔ government-friendly</strong> instead of left–right, and build the growth loop around <strong>WhatsApp-shareable coverage cards</strong> — WhatsApp is India's #2 news channel at 56%. Defer YouTube-native sources (the strongest long-term moat, since 58% of Indians get news from YouTube) to post-v1, except a cheap "lite" version via YouTube channel RSS feeds if the timeline holds.</p>
+</div>
+
+<section id="s1">
+  <span class="secnum">Section 1</span>
+  <h2>Competitive landscape: crowded on aggregation, empty on transparency</h2>
+
+  <p>India's aggregator market is large and mature, but every major player competes on <em>speed, brevity, or language coverage</em>. None competes on source transparency.</p>
+
+  <div class="tablewrap">
+    <table>
+      <tr><th>App</th><th>Positioning</th><th>Scale</th><th>Bias / ownership info</th></tr>
+      <tr><td><strong>DailyHunt</strong></td><td>Vernacular aggregation, 14+ Indian languages</td><td>100M+ Google Play downloads</td><td>None</td></tr>
+      <tr><td><strong>Inshorts</strong></td><td>60-word summaries, English + Hindi</td><td>10M+ downloads, India's highest-rated news app</td><td>None</td></tr>
+      <tr><td><strong>Google News India</strong></td><td>"Full Coverage" shows multiple outlets per story</td><td>Pre-installed reach</td><td>Lists outlets side-by-side but with <em>no lean, ownership, or framing signal</em></td></tr>
+      <tr><td><strong>NewsPoint</strong> (Times Internet)</td><td>Multi-language aggregation</td><td>10M+ downloads</td><td>None — and it is itself owned by a major publisher</td></tr>
+      <tr><td><strong>Way2News</strong></td><td>Short vernacular news</td><td>Large Tier-2/3 base</td><td>None</td></tr>
+      <tr><td><strong>Publisher apps</strong> (Dainik Bhaskar, TOI, NDTV…)</td><td>Single-outlet destinations</td><td>Tens of millions</td><td>Single perspective by definition</td></tr>
+      <tr><td><strong>Ground News</strong></td><td>Global bias comparison, 50K+ sources</td><td>1M+ Play installs globally; niche in India</td><td>Yes — but US-calibrated (Section 2)</td></tr>
+    </table>
+  </div>
+
+  <h3>Why the gap exists now (and didn't five years ago)</h3>
+  <p>The Reuters Institute Digital News Report 2026 (India findings summarized by <a href="https://www.newslaundry.com/2026/06/18/58-news-from-youtube-56-via-whatsapp-reuters-report-on-indias-news-consumption-habits">Newslaundry</a>) describes exactly the conditions a transparency product needs:</p>
+  <ul>
+    <li><strong>Trust in news fell to 39%</strong> in India, down 4 points in one year — and 52% of respondents now sometimes or often avoid news altogether.</li>
+    <li><strong>YouTube is the top news source (58%), WhatsApp second (56%, up 10 points since 2021)</strong>; TV holds 44%. News consumption has left the aggregators' home turf.</li>
+    <li>The two most-mentioned news creators in India are <strong>Dhruv Rathee and Ravish Kumar — both known for being critical of the government</strong>. The report explicitly frames India as a market where creators function as "a source of opposition and scrutiny" because mainstream TV is under government influence.</li>
+    <li>45% of respondents still say they prefer news that doesn't take sides — a 2:1 preference over congenial news. The demand is for <em>orientation</em>, not another feed.</li>
+  </ul>
+  <p>Incumbent aggregators can't easily follow you into this gap: DailyHunt and Inshorts depend on publisher partnerships and programmatic ad relationships; labeling partners' bias and owners would poison their supply. NewsPoint is owned by Times Internet — it structurally cannot editorialize about ownership. Your independence <em>is</em> the moat against local incumbents; India-specificity is the moat against Ground News.</p>
+  <p class="footnote">Caveat you should carry into your course write-up: the Reuters India sample is English-speaking online users — precisely your v1 target market, so the stats above are unusually well-matched to your segment, but they don't describe Bharat at large.</p>
+</section>
+
+<section id="s2">
+  <span class="secnum">Section 2</span>
+  <h2>What Ground News gets wrong for an Indian audience</h2>
+
+  <p>Ground News is a genuinely good product for its home market. Its India problems are structural, not cosmetic — which is what makes a differentiated product defensible rather than a reskin.</p>
+
+  <h3>2.1 The bias axis is explicitly US-calibrated</h3>
+  <p>Ground News doesn't rate outlets itself; it averages three American raters (AllSides, Ad Fontes Media, Media Bias/Fact Check). Its own <a href="https://ground.news/rating-system">methodology page</a> states: <em>"The analysis is done in the context of the U.S. political system."</em> The results for India are incoherent on their face: Ground News currently rates <a href="https://ground.news/interest/ndtv">NDTV "Lean Right"</a> and <a href="https://ground.news/interest/times-of-india">Times of India "Lean Right"</a> — labels that collapse the most important distinction in Indian media (see 2.2) and mean nothing to an Indian reader deciding whom to trust on a farm-bill story. Most smaller Indian outlets are simply unrated and drop out of the bias bar entirely.</p>
+
+  <h3>2.2 Left–right is the wrong axis for India</h3>
+  <p>Political scientists have long noted that the Western left–right scale has, in Carnegie Endowment's phrasing, <a href="https://carnegieendowment.org/research/2023/12/how-ideology-shapes-indian-politics">"no ready-made analogue in the Indian context"</a>. Indian political competition runs on axes the US spectrum doesn't capture: majoritarianism vs. pluralism, centralization vs. federalism/regional identity, caste and community coalitions, and welfare populism practiced by nearly all parties. A multi-party coalition system with strong regional players (DMK, TMC, BRS, SP, Shiv Sena factions…) can't be projected onto a two-pole slider without destroying the information users actually need.</p>
+  <p>Meanwhile, the axis that <em>does</em> organize Indian media perception is government-aligned vs. government-critical — captured in the popular epithet "godi media," which <a href="https://rsf.org/en/country/india">RSF uses in its India country analysis</a> to describe outlets mixing populism with pro-government propaganda. Everyday Indian media talk (Reddit threads, Quora answers, Instagram reels) sorts outlets this way, not by left/right. An app that formalizes the axis people already use has instant intuitive legibility.</p>
+
+  <h3>2.3 No YouTube-native sources in a YouTube-first market</h3>
+  <p>Ground News aggregates web articles. In India, the largest "outlets" for accountability journalism are YouTube channels — Dhruv Rathee (top-200 news channel globally, ahead of India's largest newspaper's channel), Ravish Kumar's post-NDTV channel, Newslaundry, The Deshbhakt. A coverage matrix for an Indian story that omits YouTube omits the sources most likely to dissent from the mainstream framing — which is exactly the perspective a bias app exists to surface.</p>
+
+  <h3>2.4 Ownership is a footnote, but in India ownership is the story</h3>
+  <p>Ground News technically lists source ownership, but it's buried. In India, ownership concentration is the central media-trust event of the decade: Adani's 2022–23 takeover of NDTV (which triggered Ravish Kumar's resignation and channel launch — a single arc connecting angles a and b), Reliance/Ambani's control of the Network18 empire, and the pattern RSF's <a href="https://india.mom-gmr.org/en/">Media Ownership Monitor India</a> documented: national-level plurality masking heavy concentration, with the top two outlets in each language segment holding over half of readership.</p>
+
+  <h3>2.5 Secondary mismatches</h3>
+  <ul>
+    <li><strong>Pricing:</strong> Ground News is subscription-first at North American price points; Indian consumer willingness-to-pay for news apps is near zero (see the monetization struggles of even free aggregators).</li>
+    <li><strong>Regional-language blindness</strong> — shared by your v1, but your roadmap can credibly get there; theirs can't (their raters will never cover Malayalam dailies).</li>
+    <li><strong>No conflict-of-interest awareness:</strong> no mechanism connects a story's <em>subject</em> (e.g., Adani Group results) to an outlet's <em>owner</em> (e.g., AMG Media Networks) — the single most decision-relevant fact for that story.</li>
+  </ul>
+</section>
+
+<section id="s3">
+  <span class="secnum">Section 3</span>
+  <h2>The three candidate angles, evaluated</h2>
+
+  <div class="angle">
+    <h3>a. Ownership transparency + conflict-of-interest flags <span class="chip">Anchor for v1</span></h3>
+    <p><strong>Feasibility — high.</strong> This is fundamentally a <em>static dataset problem</em>, ideal for a 3-week solo build. For ~40–60 English outlets, ownership chains are documented in RSF's Media Ownership Monitor India, Wikipedia's <a href="https://en.wikipedia.org/wiki/List_of_news_media_ownership_in_India">list of news media ownership in India</a>, and MCA corporate filings. Compile once (2–3 days with AI assistance), cite every claim, update rarely. The killer feature — flagging conflicts on specific stories — is cheap at runtime: extract entities from a story cluster with an LLM, intersect with each outlet's owner-affiliation list, render a badge ("This outlet is owned by a company featured in this story").</p>
+    <p><strong>Defensibility — high.</strong> Ground News can't center this without rebuilding its product around a country it doesn't prioritize; Indian incumbents structurally can't do it at all (Section 1). Story-level conflict flagging exists nowhere.</p>
+    <p><strong>Market appeal & virality — very high.</strong> "Who really owns your news channel" is already organically viral content in India — Instagram reels and Facebook posts on Ambani/Adani media holdings circulate constantly without any product behind them. You'd be productizing a proven-viral content format. Each flagged story is a self-contained screenshot.</p>
+    <p><strong>Risks.</strong> Defamation sensitivity in a litigious climate (a Delhi court injunction in 2025 swept up Newslaundry, Scroll, The Quint and individual YouTubers). Mitigation: state only documented ownership facts with citations, neutral wording ("owned by," never "controlled by" or "mouthpiece"), and keep flags factual rather than accusatory.</p>
+  </div>
+
+  <div class="angle">
+    <h3>b. YouTube-native independent journalism as first-class sources <span class="chip warn">Defer core; ship "lite"</span></h3>
+    <p><strong>Feasibility — the hard one.</strong> Full treatment (transcripts, per-video stance analysis, clustering videos into story groups) is a multi-week project by itself: transcript access is unreliable, matching a 20-minute video essay to a day's story cluster is genuinely difficult, and creator coverage is uneven — many stories will have zero YouTube rows, making the feature look broken. <strong>But a lite version is nearly free:</strong> every YouTube channel exposes an RSS feed (<code>youtube.com/feeds/videos.xml?channel_id=…</code>) with titles and descriptions — no API quota, no scraping. Matching video titles to story clusters with your existing LLM pass gets ~15 curated channels into the coverage matrix in 1–2 days.</p>
+    <p><strong>Defensibility — the strongest of the three long-term.</strong> It aligns the product with where Indian news consumption actually is (58% YouTube) and with the market's structural quirk: the opposition press lives on YouTube. Ground News's article-centric architecture can't follow.</p>
+    <p><strong>Market appeal & virality — high,</strong> with a bonus loop: creators whose coverage you surface have audiences of millions and an incentive to mention a tool that ranks them alongside legacy TV.</p>
+    <p><strong>Risks.</strong> Scope explosion (mitigated by the lite version); channel selection itself becomes an editorial claim — publish inclusion criteria.</p>
+  </div>
+
+  <div class="angle">
+    <h3>c. Multi-axis political lean scoring <span class="chip warn">Reduce to one native axis</span></h3>
+    <p><strong>Feasibility — deceptively medium.</strong> Prompting an LLM to score articles on three axes is an afternoon's work; making those scores <em>defensible</em> is not. Every additional axis multiplies your validation burden, and a solo builder has no editorial team to calibrate against. A radar chart of five under-validated numbers reads as pseudo-precision and hands critics an easy target.</p>
+    <p><strong>Defensibility — conceptually the strongest thesis, presentationally the weakest.</strong> "The left–right slider doesn't fit India" is your whole intellectual differentiation from Ground News — but the answer to a wrong axis is the <em>right</em> axis, not five axes.</p>
+    <p><strong>Recommended reduction:</strong> ship exactly two signals. (1) <strong>Government-critical ↔ government-friendly</strong> — the axis Indians already use, scored by LLM over a rolling sample of each outlet's political coverage, displayed at outlet level with the sample size shown. (2) A <strong>sensationalism meter</strong> — comparatively uncontroversial, easy for LLMs to judge (headline style, loaded language), and it addresses the "screaming TV debate" fatigue that drives Indian news avoidance. Defer party-alignment scoring: it's the most defamation-adjacent claim and needs the most validation.</p>
+    <p><strong>Risks.</strong> LLM scores inherit training-data bias; publish the methodology, show per-outlet confidence, and let users tap through to the underlying sampled articles — transparency about the method is itself on-brand.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <tr><th>Angle</th><th>3-wk feasibility</th><th>Defensibility</th><th>Appeal</th><th>Virality</th><th>Verdict</th></tr>
+      <tr><td><strong>a. Ownership + conflict flags</strong></td><td>High</td><td>High</td><td>Strong</td><td>Very high</td><td>Anchor v1</td></tr>
+      <tr><td><strong>b. YouTube-native sources</strong></td><td>Low (full) / High (lite)</td><td>Very high</td><td>Very strong</td><td>High</td><td>Lite in v1, full post-v1</td></tr>
+      <tr><td><strong>c. Multi-axis lean</strong></td><td>Medium</td><td>High as thesis, weak as UI</td><td>Moderate</td><td>Moderate</td><td>Reduce to 1 native axis + sensationalism</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="s4">
+  <span class="secnum">Section 4</span>
+  <h2>Additional angles you haven't considered</h2>
+
+  <h3>4.1 WhatsApp share cards as the growth loop <span class="chip">Adopt in v1</span></h3>
+  <p>WhatsApp is India's second-biggest news channel (56%) and its forwarding culture is the country's real news distribution network. Render every story's coverage matrix as a clean shareable image — headline, outlet rows with lean + ownership chips, app watermark — one tap to WhatsApp. This converts your most differentiated screen into your acquisition channel, costs ~2 days (server-side or on-device image render), and is a textbook consumer-behavior mechanic: people forward it to <em>win arguments in family groups</em>, which is identity-signaling, not news-sharing. Ground News has nothing built for WhatsApp-first markets.</p>
+
+  <h3>4.2 The "silence signal": who is NOT covering this story <span class="chip">Cheap, consider</span></h3>
+  <p>Ground News's Blindspot shows left/right coverage gaps. The Indian analogue is more pointed: for a major story, show which big outlets have <em>no coverage at all</em> — especially when the missing outlet's owner intersects the story. You get this almost free: it's the complement of your coverage matrix over your fixed outlet list. "3 of India's 10 biggest outlets haven't covered this" is a stronger share card than any bias score, and it's a factual claim about presence/absence, not a judgment — lower legal risk than lean labels. (Guard against false positives from RSS lag before flagging.)</p>
+
+  <h3>4.3 Headline framing comparison <span class="chip">Cheap, consider</span></h3>
+  <p>Same story, five headlines, side by side — optionally with an LLM one-liner naming the framing difference ("Outlet A leads with the protest size; Outlet B leads with traffic disruption"). Costs almost nothing on top of clustering, teaches framing effects by demonstration, and is inherently screenshottable. This is also your best course-project exhibit: it operationalizes framing theory directly in UI.</p>
+
+  <h3>4.4 Consumer-behavior framing for the course</h3>
+  <p>Worth making explicit in your write-up — each v1 feature maps to a CB concept: ownership chips = <em>source credibility cues</em> (Hovland) supplied at the point of judgment; lean axis = correcting <em>confirmation bias</em> by making the information environment visible; framing comparison = <em>framing effects</em> demonstrated live; share cards = <em>identity signaling and social proof</em> as the growth mechanism; sensationalism meter = a response to <em>affect heuristic</em>–driven news fatigue. The app's thesis in CB terms: move source evaluation from effortful System-2 research to glanceable System-1 cues.</p>
+
+  <h3>4.5 Noted but deferred</h3>
+  <ul>
+    <li><strong>Ad/funding transparency</strong> (government ad dependence per outlet) — powerful but data is patchy; post-v1 research project.</li>
+    <li><strong>TV-debate-topic vs. actual-news tracker</strong> — viral potential but needs TV monitoring you can't build in 3 weeks.</li>
+    <li><strong>Press-freedom incident overlay</strong> (FIRs, raids on outlets) — good data exists (RSF, Free Speech Collective) but it pushes the product from "transparency tool" toward "advocacy tool"; a positioning decision to make deliberately, later.</li>
+  </ul>
+</section>
+
+<section id="s5">
+  <span class="secnum">Section 5</span>
+  <h2>Prioritized recommendation</h2>
+
+  <div class="rec">
+    <h3>v1 identity: "See who's telling you the story" — not "see both sides"</h3>
+    <p>Ground News's pitch is <em>perspective balance</em>. Yours is <em>source transparency</em>: for any story, see every outlet covering it, who owns each one, whether that owner has a stake in this story, and where the outlet sits on the one axis that matters in India. That's a different product thesis, not a smaller Ground News.</p>
+    <p><strong>Build order (cut from the bottom if slipping):</strong></p>
+    <ol>
+      <li><strong>Core pipeline</strong> — RSS ingestion from ~40 English Indian outlets, embedding-based clustering + LLM story grouping, story page with coverage matrix. <span class="footnote">Week 1</span></li>
+      <li><strong>Ownership layer</strong> — static ownership dataset with citations; conflict-of-interest badges via entity intersection. <span class="footnote">Week 2, first half</span></li>
+      <li><strong>India-native lean</strong> — government-critical ↔ government-friendly outlet scores + sensationalism meter, with a public methodology page. <span class="footnote">Week 2, second half</span></li>
+      <li><strong>WhatsApp share cards</strong> — the growth loop; also add the headline-comparison strip (near-free). <span class="footnote">Week 3</span></li>
+      <li><strong>YouTube lite</strong> — ~15 curated channels via channel RSS as extra matrix rows. <span class="footnote">Week 3 stretch; first thing to cut</span></li>
+    </ol>
+    <p><strong>Post-v1 roadmap (defer explicitly):</strong> full YouTube integration with transcripts and per-video analysis (the long-term moat); Hindi and regional languages; silence-signal/blindspot feed; multi-axis scoring if validation capacity ever exists; personalization; iOS release.</p>
+  </div>
+
+  <h3>Stack and budget (fits in ₹0–2,500 of the ₹5,000 cap)</h3>
+  <div class="tablewrap">
+    <table>
+      <tr><th>Need</th><th>Free path (recommended)</th><th>Paid alternative</th></tr>
+      <tr><td>Article ingestion</td><td><strong>Direct RSS</strong> from outlet feeds — free, real-time, no middleman</td><td>NewsData.io (free tier is snippet-only with 12-hr delay; paid tiers blow the budget) / GNews (100 req/day free, truncated content)</td></tr>
+      <tr><td>YouTube data</td><td>Channel RSS feeds (no quota) + YouTube Data API free 10K units/day</td><td>—</td></tr>
+      <tr><td>Clustering & scoring LLM</td><td>Gemini Flash free tier for dev; batch scoring at low volume</td><td>Claude Haiku via API — a few hundred ₹/month at your scale</td></tr>
+      <tr><td>Backend + DB</td><td>Supabase free tier (Postgres, auth, edge functions)</td><td>—</td></tr>
+      <tr><td>App + distribution</td><td>Expo/EAS free tier; Android APK sideload for course demo</td><td>Google Play developer account, one-time $25 (~₹2,200) — worth it for real distribution; skip Apple's $99/yr for v1</td></tr>
+      <tr><td>Ownership data</td><td>RSF Media Ownership Monitor India + Wikipedia + MCA filings — free</td><td>—</td></tr>
+    </table>
+  </div>
+
+  <h3>Two disciplines that keep this defensible</h3>
+  <ul>
+    <li><strong>Publish the methodology from day one</strong> — how outlets were selected, how lean is scored, sample sizes, and a correction channel. Ground News's credibility rests on outsourcing ratings to third parties; yours rests on radical transparency about an algorithmic method. That's also your answer to "why should I trust an LLM's bias score."</li>
+    <li><strong>Every ownership claim carries a citation; every lean label links to its evidence.</strong> In the current takedown climate (the IT Rules amendments tightened removal procedures in early 2026), being boringly factual is both the legal posture and the brand.</li>
+  </ul>
+</section>
+
+<section>
+  <span class="secnum">Sources</span>
+  <h2 class="footnote" style="font-size:1rem">Key references</h2>
+  <p class="footnote">Reuters Institute Digital News Report 2026 — India findings via <a href="https://www.newslaundry.com/2026/06/18/58-news-from-youtube-56-via-whatsapp-reuters-report-on-indias-news-consumption-habits">Newslaundry</a> · <a href="https://ground.news/rating-system">Ground News rating methodology</a> · Ground News outlet pages for <a href="https://ground.news/interest/ndtv">NDTV</a> and <a href="https://ground.news/interest/times-of-india">Times of India</a> · <a href="https://india.mom-gmr.org/en/">RSF Media Ownership Monitor India</a> and <a href="https://rsf.org/en/media-ownership-monitor-who-owns-media-india">summary</a> · <a href="https://rsf.org/en/country/india">RSF India country profile</a> ("godi media") · <a href="https://carnegieendowment.org/research/2023/12/how-ideology-shapes-indian-politics">Carnegie Endowment, "How Ideology Shapes Indian Politics"</a> · <a href="https://en.wikipedia.org/wiki/List_of_news_media_ownership_in_India">Wikipedia: news media ownership in India</a> · <a href="https://en.wikipedia.org/wiki/Ground_News">Wikipedia: Ground News</a> (incl. CJR criticism) · <a href="https://reutersinstitute.politics.ox.ac.uk/news-creators-influencers/2025/India">Reuters Institute on Indian news creators</a> · API pricing: <a href="https://gnews.io/">GNews</a>, <a href="https://newsdata.io/">NewsData.io</a>.</p>
+</section>
+</main>
