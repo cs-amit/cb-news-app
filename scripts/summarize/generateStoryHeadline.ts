@@ -1,5 +1,5 @@
 const GEMINI_GENERATE_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 export interface ArticleForSummary {
   title: string;

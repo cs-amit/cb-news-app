@@ -35,6 +35,7 @@
     "web": "expo start --web",
     "seed:outlets": "tsx scripts/seed/seedOutlets.ts",
     "ingest": "tsx scripts/ingest/run.ts",
+    "cluster": "tsx scripts/cluster/run.ts",
     "test": "jest"
   },
   "private": true
