@@ -1,0 +1,12 @@
+[
+  { "name": "The Hindu", "rss_url": "https://www.thehindu.com/news/national/feeder/default.rss" },
+  { "name": "Times of India", "rss_url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms" },
+  { "name": "The Indian Express", "rss_url": "https://indianexpress.com/section/india/feed/" },
+  { "name": "Hindustan Times", "rss_url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml" },
+  { "name": "NDTV", "rss_url": "https://feeds.feedburner.com/ndtvnews-india-news" },
+  { "name": "Scroll.in", "rss_url": "https://feeds.feedburner.com/ScrollinArticles.rss" },
+  { "name": "The Wire", "rss_url": "https://thewire.in/rss" },
+  { "name": "LiveMint", "rss_url": "https://www.livemint.com/rss/news" },
+  { "name": "Business Standard", "rss_url": "https://www.business-standard.com/rss/india-news-216.rss" },
+  { "name": "Deccan Herald", "rss_url": "https://www.deccanherald.com/stories.rss" }
+]
