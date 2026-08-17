@@ -3,9 +3,10 @@ import { fetchRecentStories } from "./queries";
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
   const order = jest.fn().mockReturnValue({ limit });
-  const select = jest.fn().mockReturnValue({ order });
+  const not = jest.fn().mockReturnValue({ order });
+  const select = jest.fn().mockReturnValue({ not });
   const from = jest.fn().mockReturnValue({ select });
-  return { client: { from } as any, from, select, order, limit };
+  return { client: { from } as any, from, select, not, order, limit };
 }
 
 describe("fetchRecentStories", () => {
@@ -17,6 +18,14 @@ describe("fetchRecentStories", () => {
     const result = await fetchRecentStories(client);
     expect(from).toHaveBeenCalledWith("stories");
     expect(result).toEqual(stories);
+  });
+
+  it("excludes stories that have no headline yet", async () => {
+    const { client, not, order, limit } = makeMockSupabase({ data: [], error: null });
+    await fetchRecentStories(client);
+    expect(not).toHaveBeenCalledWith("canonical_headline", "is", null);
+    expect(order).toHaveBeenCalledWith("first_seen_at", { ascending: false });
+    expect(limit).toHaveBeenCalledWith(50);
   });
 
   it("returns an empty array when data is null", async () => {

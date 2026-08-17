@@ -5,6 +5,11 @@ export async function fetchRecentStories(supabase: SupabaseClient): Promise<Stor
   const { data, error } = await supabase
     .from("stories")
     .select("id, canonical_headline, summary, first_seen_at")
+    // Only surface stories that already have a generated headline. Headline
+    // generation is rate-limited (~20 Gemini requests/day), so headline-less
+    // stories are created faster than they can be labelled; without this
+    // filter the newest 50 stories are almost all "Untitled story".
+    .not("canonical_headline", "is", null)
     .order("first_seen_at", { ascending: false })
     .limit(50);
   if (error) throw new Error(`Failed to fetch stories: ${error.message}`);

@@ -14,8 +14,16 @@ async function main() {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   const result = await clusterUnclusteredArticles(supabase, (text) => embedText(text, geminiKey));
-  console.log(`Created ${result.clustersCreated} stories from ${result.articlesClustered} articles.`);
+  console.log(
+    `Clustered ${result.articlesClustered} articles: ` +
+      `${result.clustersCreated} new stories created, ` +
+      `${result.articlesMergedIntoExisting} articles merged into existing stories.`
+  );
 
+  // Individual headline failures (chiefly daily Gemini quota exhaustion) are
+  // logged inside fillMissingHeadlines and do not fail the run. Only a genuine
+  // fault — missing config, an unreachable Supabase, a total embedding outage —
+  // reaches the catch below and exits non-zero, so a red run means a real problem.
   const headlineCount = await fillMissingHeadlines(supabase, geminiKey);
   console.log(`Generated headlines for ${headlineCount} stories.`);
 }
