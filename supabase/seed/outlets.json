@@ -36,7 +36,7 @@
     "rss_url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
     "is_youtube": false,
     "ownership": {
-      "owner": "HT Media Ltd, controlled by the K.K. Birla family (chairperson Shobhana Bhartia)",
+      "owner": "HT Media Ltd, owned by the K.K. Birla family (chairperson Shobhana Bhartia)",
       "owner_aliases": ["HT Media", "Birla family", "Shobhana Bhartia"],
       "citation_url": "https://en.wikipedia.org/wiki/Hindustan_Times"
     },
@@ -80,7 +80,7 @@
     "rss_url": "https://www.livemint.com/rss/news",
     "is_youtube": false,
     "ownership": {
-      "owner": "HT Media Ltd, controlled by the K.K. Birla family (same parent as Hindustan Times)",
+      "owner": "HT Media Ltd, owned by the K.K. Birla family (same parent as Hindustan Times)",
       "owner_aliases": ["HT Media", "Birla family"],
       "citation_url": "https://en.wikipedia.org/wiki/Mint_(newspaper)"
     },
@@ -134,7 +134,7 @@
     "rss_url": "https://www.news18.com/commonfeeds/v1/eng/rss/india.xml",
     "is_youtube": false,
     "ownership": {
-      "owner": "Network18 Media & Investments Ltd, majority controlled by Reliance Industries via the Independent Media Trust (TV18 merged into Network18 Oct 2024)",
+      "owner": "Network18 Media & Investments Ltd, majority-owned by Reliance Industries via the Independent Media Trust (TV18 merged into Network18 Oct 2024)",
       "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
@@ -255,7 +255,7 @@
     "rss_url": "https://www.nationalheraldindia.com/stories.rss",
     "is_youtube": false,
     "ownership": {
-      "owner": "Associated Journals Ltd, controlled by Young Indian Ltd; Sonia Gandhi and Rahul Gandhi hold 76% of Young Indian, senior Congress leaders hold the remainder",
+      "owner": "Associated Journals Ltd, owned by Young Indian Ltd; Sonia Gandhi and Rahul Gandhi hold 76% of Young Indian, senior Congress leaders hold the remainder",
       "owner_aliases": ["Sonia Gandhi", "Rahul Gandhi", "Young Indian", "Indian National Congress"],
       "citation_url": "https://en.wikipedia.org/wiki/National_Herald",
       "note": "Subject of an ongoing Enforcement Directorate money-laundering case over the Associated Journals-Young India asset transfer, with a 2025 chargesheet naming Sonia and Rahul Gandhi",
