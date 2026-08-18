@@ -1425,7 +1425,7 @@ describe("flagStoryConflicts", () => {
         return {
           data: [
             {
-              title: "Adani wins new port contract",
+              title: "Adani Group wins new port contract",
               snippet: "s",
               outlet: { id: "outlet-1", ownership: { owner: "Adani Group" } },
             },
