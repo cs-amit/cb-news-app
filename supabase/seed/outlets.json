@@ -1,12 +1,300 @@
 [
-  { "name": "The Hindu", "rss_url": "https://www.thehindu.com/news/national/feeder/default.rss" },
-  { "name": "Times of India", "rss_url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms" },
-  { "name": "The Indian Express", "rss_url": "https://indianexpress.com/section/india/feed/" },
-  { "name": "Hindustan Times", "rss_url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml" },
-  { "name": "NDTV", "rss_url": "https://feeds.feedburner.com/ndtvnews-india-news" },
-  { "name": "Scroll.in", "rss_url": "https://feeds.feedburner.com/ScrollinArticles.rss" },
-  { "name": "The Wire", "rss_url": "https://thewire.in/rss" },
-  { "name": "LiveMint", "rss_url": "https://www.livemint.com/rss/news" },
-  { "name": "Business Standard", "rss_url": "https://www.business-standard.com/rss/india-news-216.rss" },
-  { "name": "Deccan Herald", "rss_url": "https://www.deccanherald.com/stories.rss" }
+  {
+    "name": "The Hindu",
+    "rss_url": "https://www.thehindu.com/news/national/feeder/default.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Kasturi & Sons Ltd, owned by the Kasturi family (descendants of founder Kasturi Ranga Iyengar)",
+      "citation_url": "https://en.wikipedia.org/wiki/The_Hindu"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Times of India",
+    "rss_url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Bennett, Coleman & Co. Ltd (The Times Group), owned by the Sahu Jain family",
+      "owner_aliases": ["Times Group", "Bennett Coleman", "Sahu Jain"],
+      "citation_url": "https://en.wikipedia.org/wiki/The_Times_Group"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "The Indian Express",
+    "rss_url": "https://indianexpress.com/section/india/feed/",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Indian Express Group; Viveck Goenka holds 90.1% of parent Indian Express Holdings and Enterprises Pvt Ltd",
+      "owner_aliases": ["Viveck Goenka"],
+      "citation_url": "https://en.wikipedia.org/wiki/Indian_Express_Limited"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Hindustan Times",
+    "rss_url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "HT Media Ltd, controlled by the K.K. Birla family (chairperson Shobhana Bhartia)",
+      "owner_aliases": ["HT Media", "Birla family", "Shobhana Bhartia"],
+      "citation_url": "https://en.wikipedia.org/wiki/Hindustan_Times"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "NDTV",
+    "rss_url": "https://feeds.feedburner.com/ndtvnews-india-news",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Majority-owned (~64.7%) by the Adani Group via RRPR Holding / Adani Media Networks",
+      "owner_aliases": ["Adani Group", "Adani Enterprises", "Gautam Adani", "Adani"],
+      "citation_url": "https://en.wikipedia.org/wiki/NDTV",
+      "note": "2022 Adani Group acquisition of founders Prannoy and Radhika Roy's stake via an open offer, widely reported as a press-freedom/editorial-independence concern",
+      "note_citation_url": "https://www.aljazeera.com/economy/2022/12/5/indian-billionaire-adani-is-now-ndtvs-biggest-shareholder"
+    },
+    "freedom_score": 22
+  },
+  {
+    "name": "Scroll.in",
+    "rss_url": "https://feeds.feedburner.com/ScrollinArticles.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Scroll Media Inc. / SCSN Pvt Ltd; founders Samir Patil and Naresh Fernandes",
+      "citation_url": "https://en.wikipedia.org/wiki/Scroll.in"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "The Wire",
+    "rss_url": "https://thewire.in/rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Foundation for Independent Journalism (non-profit); founding editors Siddharth Varadarajan, Sidharth Bhatia and M.K. Venu hold equal thirds",
+      "citation_url": "https://en.wikipedia.org/wiki/The_Wire_(India)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "LiveMint",
+    "rss_url": "https://www.livemint.com/rss/news",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "HT Media Ltd, controlled by the K.K. Birla family (same parent as Hindustan Times)",
+      "owner_aliases": ["HT Media", "Birla family"],
+      "citation_url": "https://en.wikipedia.org/wiki/Mint_(newspaper)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Business Standard",
+    "rss_url": "https://www.business-standard.com/rss/india-news-216.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Business Standard Pvt Ltd; majority held by Kotak Mahindra Bank, with ABP Group also a shareholder",
+      "owner_aliases": ["Kotak Mahindra", "ABP Group"],
+      "citation_url": "https://en.wikipedia.org/wiki/Business_Standard"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Deccan Herald",
+    "rss_url": "https://www.deccanherald.com/stories.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "The Printers (Mysore) Pvt Ltd, owned by the Nettakallappa family (descendants of founder K.N. Guruswamy)",
+      "citation_url": "https://en.wikipedia.org/wiki/Deccan_Herald"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "India Today",
+    "rss_url": "https://www.indiatoday.in/rss/1206514",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "India Today Group / Living Media India Ltd, wholly owned by the Purie family (Aroon Purie)",
+      "owner_aliases": ["Purie family", "Aroon Purie", "Living Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/India_Today"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Business Today",
+    "rss_url": "https://www.businesstoday.in/rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "India Today Group / Living Media India Ltd, wholly owned by the Purie family (same parent as India Today)",
+      "owner_aliases": ["India Today Group", "Purie family", "Aroon Purie", "Living Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/India_Today"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "News18",
+    "rss_url": "https://www.news18.com/commonfeeds/v1/eng/rss/india.xml",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Network18 Media & Investments Ltd, majority controlled by Reliance Industries via the Independent Media Trust (TV18 merged into Network18 Oct 2024)",
+      "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
+      "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "The Quint",
+    "rss_url": "https://www.thequint.com/stories.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Quintillion Media Pvt Ltd, founder-owned by Raghav Bahl and Ritu Kapur",
+      "owner_aliases": ["Raghav Bahl", "Quintillion Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/The_Quint"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Newslaundry",
+    "rss_url": "https://www.newslaundry.com/feed",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Independent, subscriber-funded; co-founders Abhinandan Sekhri, Prashant Sareen and Roopak Kapoor each hold approximately 23.5%",
+      "citation_url": "https://www.newslaundry.com/2021/07/02/who-owns-newslaundry"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Organiser",
+    "rss_url": "https://organiser.org/feed/",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Published by Bharat Prakashan (Delhi) Ltd, in continuous editorial association with the Rashtriya Swayamsevak Sangh since its 1947 founding",
+      "owner_aliases": ["Rashtriya Swayamsevak Sangh", "Bharat Prakashan"],
+      "citation_url": "https://en.wikipedia.org/wiki/Organiser_(magazine)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Republic World",
+    "rss_url": "https://www.republicworld.com/rss/india.xml",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "ARG Outlier Media Pvt Ltd; Arnab Goswami and family hold over 82% of parent SARG Media Holding Pvt Ltd",
+      "owner_aliases": ["Arnab Goswami", "ARG Outlier Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/Republic_TV"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Deccan Chronicle",
+    "rss_url": "https://www.deccanchronicle.com/rss_feed/",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Deccan Chronicle Holdings Ltd; founder-promoter T. Venkattram Reddy",
+      "owner_aliases": ["T. Venkattram Reddy", "Deccan Chronicle Holdings"],
+      "citation_url": "https://en.wikipedia.org/wiki/Deccan_Chronicle",
+      "note": "Former DCHL chairman T. Venkattram Reddy was arrested by India's Enforcement Directorate in June 2023 in a money-laundering case tied to the company",
+      "note_citation_url": "https://www.business-standard.com/india-news/who-is-t-venkattram-reddy-the-man-arrested-by-ed-in-money-laundering-case-123061400869_1.html"
+    },
+    "freedom_score": 22
+  },
+  {
+    "name": "Swarajya",
+    "rss_url": "https://swarajyamag.com/feed",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Kovai Media Pvt Ltd; investors include former Infosys director T.V. Mohandas Pai",
+      "owner_aliases": ["T.V. Mohandas Pai", "Kovai Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/Swarajya_(magazine)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "OpIndia",
+    "rss_url": "https://www.opindia.com/feed/",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Kovai Media Pvt Ltd (same parent as Swarajya); investors include T.V. Mohandas Pai",
+      "owner_aliases": ["Kovai Media", "T.V. Mohandas Pai"],
+      "citation_url": "https://en.wikipedia.org/wiki/OpIndia"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Free Press Journal",
+    "rss_url": "https://www.freepressjournal.in/stories.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Indian National Press (Bombay) Pvt Ltd, held by the Karnani family",
+      "owner_aliases": ["Karnani family"],
+      "citation_url": "https://en.wikipedia.org/wiki/The_Free_Press_Journal"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Tribune India",
+    "rss_url": "https://publish.tribuneindia.com/newscategory/nation/feed/",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "The Tribune Trust, an independent public trust (Chandigarh)",
+      "citation_url": "https://en.wikipedia.org/wiki/The_Tribune_(India)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Onmanorama",
+    "rss_url": "https://www.onmanorama.com/news/india.feeds.onmrss.xml",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "The Malayala Manorama Co. Pvt Ltd, a closely-held family enterprise of the Mammen Mathew / Mappillai family",
+      "owner_aliases": ["Malayala Manorama", "Mammen Mathew"],
+      "citation_url": "https://en.wikipedia.org/wiki/Malayala_Manorama"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "National Herald",
+    "rss_url": "https://www.nationalheraldindia.com/stories.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Associated Journals Ltd, controlled by Young Indian Ltd; Sonia Gandhi and Rahul Gandhi hold 76% of Young Indian, senior Congress leaders hold the remainder",
+      "owner_aliases": ["Sonia Gandhi", "Rahul Gandhi", "Young Indian", "Indian National Congress"],
+      "citation_url": "https://en.wikipedia.org/wiki/National_Herald",
+      "note": "Subject of an ongoing Enforcement Directorate money-laundering case over the Associated Journals-Young India asset transfer, with a 2025 chargesheet naming Sonia and Rahul Gandhi",
+      "note_citation_url": "https://en.wikipedia.org/wiki/National_Herald"
+    },
+    "freedom_score": 22
+  },
+  {
+    "name": "Down To Earth",
+    "rss_url": "https://www.downtoearth.org.in/feed",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "Published by the Society for Environmental Communications, affiliated with the Centre for Science and Environment (director general Sunita Narain)",
+      "owner_aliases": ["Centre for Science and Environment", "Sunita Narain"],
+      "citation_url": "https://en.wikipedia.org/wiki/Down_to_Earth_(magazine)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Frontline",
+    "rss_url": "https://frontline.thehindu.com/feeder/default.rss",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "The Hindu Group / Kasturi & Sons Ltd, owned by the Kasturi family",
+      "citation_url": "https://en.wikipedia.org/wiki/Frontline_(magazine)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "NewsClick",
+    "rss_url": "https://www.newsclick.in/rss.xml",
+    "is_youtube": false,
+    "ownership": {
+      "owner": "PPK NewsClick Studio Pvt Ltd; founder-editor Prabir Purkayastha and Subodh Varma are directors",
+      "owner_aliases": ["Prabir Purkayastha", "PPK NewsClick"],
+      "citation_url": "https://en.wikipedia.org/wiki/NewsClick",
+      "note": "October 2023: coordinated police raids on ~30 journalists' homes and offices; founder Prabir Purkayastha arrested under the UAPA over alleged Chinese-linked foreign funding. India's Supreme Court ruled the arrest illegal and ordered his release in May 2024",
+      "note_citation_url": "https://www.aljazeera.com/news/2024/5/15/india-top-court-bails-newsclick-editor-arrested-in-chinese-funding-case"
+    },
+    "freedom_score": 22
+  }
 ]
