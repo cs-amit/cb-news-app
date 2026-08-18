@@ -802,7 +802,7 @@ git commit -m "fix: batch headline generation into one request per run instead o
 
 Only 10 outlets are currently seeded (spec target is ~40-60; the Week 1 plan explicitly deferred the full list to Week 2). This task grows the roster to 27 outlets — every candidate below was verified to have a real, currently-resolving RSS feed; several other well-known outlets (ThePrint, Outlook India, The Telegraph, WION's sister print edition, Financial Express, The Caravan, The New Indian Express) were investigated and dropped because no working feed could be found (bot-blocked or feeds disabled) — they are not included below rather than seeded with a guessed URL. Reaching the full ~40-60 target would require either a paid news API or manual bot-block workarounds; both are out of scope for this budget-conscious plan and are noted as future work in Task 10's self-review.
 
-Every `owner` claim uses neutral wording ("owned by" / "controlled by [an ownership stake]", never "mouthpiece") and carries a `citation_url`. `freedom_score` (0-100, **higher = more press freedom**) defaults to a shared baseline derived from RSF's 2026 World Press Freedom Index score for India — 31.96/100, rank 157 of 180 (https://rsf.org/en/country/india) — rounded to **32**. A small, flat **-10** penalty applies only to outlets with a specific, well-documented, citable press-freedom incident tied to that outlet (never a subjective severity ranking, which would be unfalsifiable from a solo build with no editorial review capacity) — giving those four outlets a score of **22**. This baseline and methodology are surfaced on the Methodology page in Task 8.
+Every `owner` claim uses neutral wording ("owned by," never "controlled by" or "mouthpiece" — matching the Global Constraints verbatim) and carries a `citation_url`. `freedom_score` (0-100, **higher = more press freedom**) defaults to a shared baseline derived from RSF's 2026 World Press Freedom Index score for India — 31.96/100, rank 157 of 180 (https://rsf.org/en/country/india) — rounded to **32**. A small, flat **-10** penalty applies only to outlets with a specific, well-documented, citable press-freedom incident tied to that outlet (never a subjective severity ranking, which would be unfalsifiable from a solo build with no editorial review capacity) — giving those four outlets a score of **22**. This baseline and methodology are surfaced on the Methodology page in Task 8.
 
 - [ ] **Step 1: Verify every new RSS feed URL actually resolves**
 
@@ -857,7 +857,7 @@ Replace the full contents of `supabase/seed/outlets.json`:
     "rss_url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
     "is_youtube": false,
     "ownership": {
-      "owner": "HT Media Ltd, controlled by the K.K. Birla family (chairperson Shobhana Bhartia)",
+      "owner": "HT Media Ltd, owned by the K.K. Birla family (chairperson Shobhana Bhartia)",
       "owner_aliases": ["HT Media", "Birla family", "Shobhana Bhartia"],
       "citation_url": "https://en.wikipedia.org/wiki/Hindustan_Times"
     },
@@ -901,7 +901,7 @@ Replace the full contents of `supabase/seed/outlets.json`:
     "rss_url": "https://www.livemint.com/rss/news",
     "is_youtube": false,
     "ownership": {
-      "owner": "HT Media Ltd, controlled by the K.K. Birla family (same parent as Hindustan Times)",
+      "owner": "HT Media Ltd, owned by the K.K. Birla family (same parent as Hindustan Times)",
       "owner_aliases": ["HT Media", "Birla family"],
       "citation_url": "https://en.wikipedia.org/wiki/Mint_(newspaper)"
     },
@@ -955,7 +955,7 @@ Replace the full contents of `supabase/seed/outlets.json`:
     "rss_url": "https://www.news18.com/commonfeeds/v1/eng/rss/india.xml",
     "is_youtube": false,
     "ownership": {
-      "owner": "Network18 Media & Investments Ltd, majority controlled by Reliance Industries via the Independent Media Trust (TV18 merged into Network18 Oct 2024)",
+      "owner": "Network18 Media & Investments Ltd, majority-owned by Reliance Industries via the Independent Media Trust (TV18 merged into Network18 Oct 2024)",
       "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
@@ -1076,7 +1076,7 @@ Replace the full contents of `supabase/seed/outlets.json`:
     "rss_url": "https://www.nationalheraldindia.com/stories.rss",
     "is_youtube": false,
     "ownership": {
-      "owner": "Associated Journals Ltd, controlled by Young Indian Ltd; Sonia Gandhi and Rahul Gandhi hold 76% of Young Indian, senior Congress leaders hold the remainder",
+      "owner": "Associated Journals Ltd, owned by Young Indian Ltd; Sonia Gandhi and Rahul Gandhi hold 76% of Young Indian, senior Congress leaders hold the remainder",
       "owner_aliases": ["Sonia Gandhi", "Rahul Gandhi", "Young Indian", "Indian National Congress"],
       "citation_url": "https://en.wikipedia.org/wiki/National_Herald",
       "note": "Subject of an ongoing Enforcement Directorate money-laundering case over the Associated Journals-Young India asset transfer, with a 2025 chargesheet naming Sonia and Rahul Gandhi",
@@ -2485,7 +2485,7 @@ In `supabase/seed/outlets.json`, insert the following 19 objects as new array el
     "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCPP3etACgdUWvizcES1dJ8Q",
     "is_youtube": true,
     "ownership": {
-      "owner": "Network18 Media & Investments Ltd, majority controlled by Reliance Industries",
+      "owner": "Network18 Media & Investments Ltd, majority-owned by Reliance Industries",
       "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
