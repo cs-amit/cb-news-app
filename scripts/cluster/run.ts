@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { clusterUnclusteredArticles } from "./clusterStories";
 import { embedText } from "./embed";
 import { fillMissingHeadlines } from "../summarize/fillMissingHeadlines";
+import { generateBatchHeadlines } from "../summarize/generateBatchHeadlines";
 
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -24,7 +25,9 @@ async function main() {
   // logged inside fillMissingHeadlines and do not fail the run. Only a genuine
   // fault — missing config, an unreachable Supabase, a total embedding outage —
   // reaches the catch below and exits non-zero, so a red run means a real problem.
-  const headlineCount = await fillMissingHeadlines(supabase, geminiKey);
+  const headlineCount = await fillMissingHeadlines(supabase, (batch) =>
+    generateBatchHeadlines(batch, geminiKey)
+  );
   console.log(`Generated headlines for ${headlineCount} stories.`);
 }
 
