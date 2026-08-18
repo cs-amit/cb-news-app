@@ -296,5 +296,217 @@
       "note_citation_url": "https://www.aljazeera.com/news/2024/5/15/india-top-court-bails-newsclick-editor-arrested-in-chinese-funding-case"
     },
     "freedom_score": 22
+  },
+  {
+    "name": "Ravish Kumar Official",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC0yXUUIaPVAqZLgRjvtMftw",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Independent; run by journalist Ravish Kumar, formerly Senior Executive Editor of NDTV India",
+      "owner_aliases": ["Ravish Kumar"],
+      "citation_url": "https://en.wikipedia.org/wiki/Ravish_Kumar",
+      "note": "Resigned from NDTV after its December 2022 acquisition by the Adani Group and now publishes independently on YouTube; commentary is frequently critical of government policy."
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "The Wire (YouTube)",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UChWtJey46brNr7qHQpN6KLQ",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Foundation for Independent Journalism (non-profit); founding editors Siddharth Varadarajan, Sidharth Bhatia and M.K. Venu hold equal thirds",
+      "citation_url": "https://en.wikipedia.org/wiki/The_Wire_(India)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Newslaundry (YouTube)",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCustbySVJGb659WDpdkeATg",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Independent, subscriber-funded; co-founders Abhinandan Sekhri, Prashant Sareen and Roopak Kapoor each hold approximately 23.5%",
+      "citation_url": "https://en.wikipedia.org/wiki/Newslaundry"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "The Quint (YouTube)",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCSaf-7p3J_N-02p7jHzm5tA",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Quintillion Media Pvt Ltd, founder-owned by Raghav Bahl and Ritu Kapur",
+      "owner_aliases": ["Raghav Bahl", "Quintillion Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/The_Quint"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "ThePrint",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCuyRsHZILrU7ZDIAbGASHdA",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Independent; founded by journalist Shekhar Gupta with a stated editorial mission to be \"factual and liberal\"",
+      "owner_aliases": ["Shekhar Gupta"],
+      "citation_url": "https://en.wikipedia.org/wiki/ThePrint"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Dhruv Rathee",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC-CSyyi47VX1lD9zyeABW3w",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Independent creator Dhruv Rathee, producing explainer and commentary videos on Indian politics",
+      "owner_aliases": ["Dhruv Rathee"],
+      "citation_url": "https://en.wikipedia.org/wiki/Dhruv_Rathee"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Republic Bharat",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC7wXt18f2iA3EDXeqAVuKng",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "ARG Outlier Media Pvt Ltd; Hindi-language sister channel of Republic TV, founded by Arnab Goswami",
+      "owner_aliases": ["Arnab Goswami", "ARG Outlier Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/Republic_TV"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Zee News",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCIvaYmXn910QMdemBG3v1pQ",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Zee Media Corporation (Essel Group), chaired by Subhash Chandra, a BJP-nominated member of the Rajya Sabha",
+      "owner_aliases": ["Zee Media", "Essel Group", "Subhash Chandra"],
+      "citation_url": "https://en.wikipedia.org/wiki/Zee_News"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Times Now Navbharat",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCMk9Tdc-d1BIcAFaSppiVkw",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "The Times Group (Bennett, Coleman & Co.), owned by the Sahu Jain family",
+      "owner_aliases": ["Times Group", "Bennett Coleman", "Sahu Jain"],
+      "citation_url": "https://en.wikipedia.org/wiki/Times_Now_Navbharat"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Sudarshan News",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCNBEfg_PfpSjk8DqiafJJhg",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Independent; editor-in-chief Suresh Chavhanke, a longtime Rashtriya Swayamsevak Sangh member",
+      "owner_aliases": ["Suresh Chavhanke"],
+      "citation_url": "https://en.wikipedia.org/wiki/Sudarshan_News",
+      "note": "Received a government regulatory advisory and faced court proceedings over broadcasts targeting a religious minority",
+      "note_citation_url": "https://en.wikipedia.org/wiki/Sudarshan_News"
+    },
+    "freedom_score": 22
+  },
+  {
+    "name": "India TV",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCttspZesZIDEwwpVIgoZtWQ",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Independent; founded and edited by Rajat Sharma, not part of a larger corporate conglomerate",
+      "owner_aliases": ["Rajat Sharma"],
+      "citation_url": "https://en.wikipedia.org/wiki/India_TV"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Aaj Tak",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCt4t-jeY85JegMlZ-E5UWtA",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "TV Today Network (India Today Group, Purie family)",
+      "owner_aliases": ["India Today Group", "Purie family", "Aroon Purie", "Living Media"],
+      "citation_url": "https://en.wikipedia.org/wiki/Aaj_Tak"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "NDTV (YouTube)",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCZFMm1mMw0F81Z37aaEzTUA",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Majority-owned (~64.7%) by the Adani Group via RRPR Holding / Adani Media Networks",
+      "owner_aliases": ["Adani Group", "Adani Enterprises", "Gautam Adani", "Adani"],
+      "citation_url": "https://en.wikipedia.org/wiki/NDTV",
+      "note": "Majority ownership passed to the Adani Group in December 2022, after which several senior editorial staff, including Ravish Kumar, resigned citing concerns about editorial independence",
+      "note_citation_url": "https://www.aljazeera.com/economy/2022/12/5/indian-billionaire-adani-is-now-ndtvs-biggest-shareholder"
+    },
+    "freedom_score": 22
+  },
+  {
+    "name": "ABP News",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCRWFSbif-RFENbBrSiez1DA",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "ABP Group (Sarkar family), independent of the Reliance, Adani, and Essel ownership groups",
+      "owner_aliases": ["ABP Group", "Sarkar family"],
+      "citation_url": "https://en.wikipedia.org/wiki/ABP_News"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "News18 India",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCPP3etACgdUWvizcES1dJ8Q",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Network18 Media & Investments Ltd, majority-owned by Reliance Industries",
+      "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
+      "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "WION",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC_gUM8rL-Lrg6O3adPW9K1g",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Zee Media (Essel Group); focused primarily on world/global affairs rather than domestic Indian politics",
+      "owner_aliases": ["Zee Media", "Essel Group"],
+      "citation_url": "https://en.wikipedia.org/wiki/WION"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "PTI News",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCJ5gGTLrAeXFyOmooAEH7zw",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Press Trust of India, a nonprofit cooperative wire service collectively owned by roughly 450 Indian newspapers",
+      "owner_aliases": ["Press Trust of India"],
+      "citation_url": "https://en.wikipedia.org/wiki/Press_Trust_of_India"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "CNBC-TV18",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCmRbHAgG2k2vDUvb3xsEunQ",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Joint venture between Network18 (Reliance Industries) and Versant; markets- and economy-focused",
+      "owner_aliases": ["Network18", "Reliance Industries", "Reliance"],
+      "citation_url": "https://en.wikipedia.org/wiki/CNBC_TV18"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Moneycontrol",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UChftTVI0QJmyXkajQYt2tiQ",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Network18 (Reliance Industries); carries a mix of markets coverage and general breaking news syndicated across the Network18 group",
+      "owner_aliases": ["Network18", "Reliance Industries", "Reliance"],
+      "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
+    },
+    "freedom_score": 32
   }
 ]
