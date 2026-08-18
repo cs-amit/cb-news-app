@@ -4,6 +4,7 @@ import { clusterUnclusteredArticles } from "./clusterStories";
 import { embedText } from "./embed";
 import { fillMissingHeadlines } from "../summarize/fillMissingHeadlines";
 import { generateBatchHeadlines } from "../summarize/generateBatchHeadlines";
+import { flagStoryConflicts } from "../conflict/flagStoryConflicts";
 
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -20,6 +21,9 @@ async function main() {
       `${result.clustersCreated} new stories created, ` +
       `${result.articlesMergedIntoExisting} articles merged into existing stories.`
   );
+
+  const conflictCount = await flagStoryConflicts(supabase);
+  console.log(`Flagged ${conflictCount} conflict(s) of interest.`);
 
   // Individual headline failures (chiefly daily Gemini quota exhaustion) are
   // logged inside fillMissingHeadlines and do not fail the run. Only a genuine
