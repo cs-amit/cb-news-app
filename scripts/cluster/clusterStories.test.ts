@@ -22,6 +22,7 @@ const CHAIN_METHODS = [
   "in",
   "order",
   "limit",
+  "range",
   "single",
 ];
 
@@ -244,6 +245,68 @@ describe("clusterUnclusteredArticles", () => {
       articlesMergedIntoExisting: 0,
     });
     expect(embedFn).not.toHaveBeenCalled();
+  });
+
+  it("pages through the full anchor set instead of stopping at the first page", async () => {
+    const ANCHOR_PAGE_SIZE = 500;
+    const page1 = Array.from({ length: ANCHOR_PAGE_SIZE }, (_, i) => ({
+      id: `anchor-page1-${i}`,
+      story_id: "story-existing",
+      embedding: asPgVector(DIFFERENT_EMBEDDING),
+    }));
+    // Lives on page 2, past the OLD hard cap — only reachable if pagination works.
+    const page2 = [
+      { id: "anchor-page2-0", story_id: "story-old", embedding: asPgVector(ANCHOR_EMBEDDING) },
+    ];
+
+    const mock = makeMockSupabase((q) => {
+      if (q.table === "stories") return { data: { id: "story-new" }, error: null };
+      if (has(q.calls, "update")) return { data: null, error: null };
+      if (has(q.calls, "is", "story_id", null)) {
+        return { data: [{ id: "new-1", title: "New coverage", snippet: "s" }], error: null };
+      }
+      if (has(q.calls, "not", "story_id", "is", null)) {
+        const rangeCall = q.calls.find((c) => c.method === "range")!;
+        const [offset] = rangeCall.args;
+        return { data: offset === 0 ? page1 : page2, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const embedFn = jest.fn().mockResolvedValue(ANCHOR_EMBEDDING);
+    const result = await clusterUnclusteredArticles(mock.client, embedFn);
+
+    expect(result.articlesMergedIntoExisting).toBe(1);
+    const assignment = storyAssignments(mock.queries)[0];
+    expect(assignment.payload).toEqual({ story_id: "story-old" });
+  });
+
+  it("warns but does not throw when the anchor set hits the safety ceiling", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const bigPage = () =>
+      Array.from({ length: 500 }, (_, i) => ({
+        id: `a-${i}`,
+        story_id: "story-existing",
+        embedding: asPgVector(DIFFERENT_EMBEDDING),
+      }));
+
+    const mock = makeMockSupabase((q) => {
+      if (q.table === "stories") return { data: { id: "story-new" }, error: null };
+      if (has(q.calls, "update")) return { data: null, error: null };
+      if (has(q.calls, "is", "story_id", null)) {
+        return { data: [{ id: "new-1", title: "New coverage", snippet: "s" }], error: null };
+      }
+      if (has(q.calls, "not", "story_id", "is", null)) {
+        return { data: bigPage(), error: null }; // every page is full -> loops until ceiling
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const embedFn = jest.fn().mockResolvedValue(DIFFERENT_EMBEDDING);
+    await clusterUnclusteredArticles(mock.client, embedFn);
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("safety ceiling"));
+    warnSpy.mockRestore();
   });
 });
 

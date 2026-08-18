@@ -16,10 +16,15 @@ const UNCLUSTERED_WINDOW_HOURS = 48;
 // with a missing RSS date.
 const ANCHOR_WINDOW_HOURS = 72;
 
-// Hard cap on anchors, newest first. PostgREST applies its own default row
-// ceiling, so bound the set explicitly to make any truncation deterministic
-// (keep the most recent anchors) and to keep the O(n^2) similarity pass cheap.
-const ANCHOR_LIMIT = 500;
+// Page size for fetching anchors — matches PostgREST's own default row
+// ceiling, so paging requires no server-side config changes.
+const ANCHOR_PAGE_SIZE = 500;
+
+// Hard safety ceiling across ALL pages combined. Not expected to be hit in
+// normal operation — it exists so a runaway anchor window (a clustering bug
+// that stops assigning story_id, or a large outlet-count spike) degrades to a
+// loud warning instead of an unbounded fetch loop.
+const ANCHOR_SAFETY_CEILING = 5000;
 
 interface UnclusteredArticle {
   id: string;
@@ -129,35 +134,48 @@ export async function clusterUnclusteredArticles(
 
   // Anchors: already-clustered recent articles, so new coverage can join the
   // story they belong to instead of creating a parallel duplicate story.
+  // Paginate through the FULL window instead of taking a single capped page —
+  // a fixed cap silently drops older anchors once the live table outgrows it
+  // (this happened in production: the 500-row cap started truncating within
+  // days of shipping), which quietly degrades merge recall with no visible
+  // signal that anything was wrong.
   const anchorCutoff = new Date(
     Date.now() - ANCHOR_WINDOW_HOURS * 60 * 60 * 1000
   ).toISOString();
-  const { data: anchorRows, error: anchorError } = await supabase
-    .from("articles")
-    .select("id, story_id, embedding")
-    .not("story_id", "is", null)
-    .not("embedding", "is", null)
-    .gte("created_at", anchorCutoff)
-    .order("created_at", { ascending: false })
-    .limit(ANCHOR_LIMIT);
 
-  if (anchorError) {
-    throw new Error(`Failed to fetch anchor articles: ${anchorError.message}`);
-  }
+  const anchorRows: { id: string; story_id: string; embedding: unknown }[] = [];
+  let anchorOffset = 0;
+  while (true) {
+    const { data: page, error: anchorError } = await supabase
+      .from("articles")
+      .select("id, story_id, embedding")
+      .not("story_id", "is", null)
+      .not("embedding", "is", null)
+      .gte("created_at", anchorCutoff)
+      .order("created_at", { ascending: false })
+      .range(anchorOffset, anchorOffset + ANCHOR_PAGE_SIZE - 1);
 
-  if ((anchorRows?.length ?? 0) >= ANCHOR_LIMIT) {
-    // The live DB already sits in the low hundreds of anchors, so make it
-    // visible when the cap starts silently limiting merge recall.
-    console.warn(
-      `Anchor set hit the ${ANCHOR_LIMIT}-row cap; older clustered articles in the ` +
-        `${ANCHOR_WINDOW_HOURS}h window were not considered for merging.`
-    );
+    if (anchorError) {
+      throw new Error(`Failed to fetch anchor articles: ${anchorError.message}`);
+    }
+    anchorRows.push(...(page ?? []));
+
+    if ((page?.length ?? 0) < ANCHOR_PAGE_SIZE) break;
+    if (anchorRows.length >= ANCHOR_SAFETY_CEILING) {
+      console.warn(
+        `Anchor set hit the ${ANCHOR_SAFETY_CEILING}-row safety ceiling; older ` +
+          `clustered articles in the ${ANCHOR_WINDOW_HOURS}h window were not ` +
+          `considered for merging. Investigate anchor volume growth.`
+      );
+      break;
+    }
+    anchorOffset += ANCHOR_PAGE_SIZE;
   }
 
   const expectedDim = newEmbedded[0].embedding.length;
   const anchorStoryById = new Map<string, string>();
   const anchorEmbedded: EmbeddedArticle[] = [];
-  for (const row of (anchorRows ?? []) as { id: string; story_id: string; embedding: unknown }[]) {
+  for (const row of anchorRows as { id: string; story_id: string; embedding: unknown }[]) {
     const embedding = parseEmbedding(row.embedding);
     // cosineSimilarity throws on a length mismatch, so drop anything that
     // isn't the current embedding dimension rather than killing the run.
