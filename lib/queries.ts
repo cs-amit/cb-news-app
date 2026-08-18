@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Story, ArticleWithOutlet } from "./types";
+import { OutletSummary, computeSilentOutlets } from "./silence";
 
 export async function fetchRecentStories(supabase: SupabaseClient): Promise<Story[]> {
   const { data, error } = await supabase
@@ -35,4 +36,39 @@ export async function fetchStoryWithArticles(
   if (articlesError) throw new Error(`Failed to fetch articles: ${articlesError.message}`);
 
   return { story, articles: (articles ?? []) as unknown as ArticleWithOutlet[] };
+}
+
+const ACTIVE_OUTLET_WINDOW_DAYS = 7;
+
+export async function fetchSilentOutlets(
+  supabase: SupabaseClient,
+  storyId: string,
+  storyFirstSeenAt: string
+): Promise<OutletSummary[]> {
+  const activeCutoff = new Date(
+    Date.now() - ACTIVE_OUTLET_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data: activeArticles, error: activeError } = await supabase
+    .from("articles")
+    .select("outlet_id")
+    .gte("created_at", activeCutoff);
+  if (activeError) throw new Error(`Failed to fetch active outlets: ${activeError.message}`);
+  const activeOutletIds = [...new Set((activeArticles ?? []).map((a: any) => a.outlet_id))];
+  if (activeOutletIds.length === 0) return [];
+
+  const { data: activeOutlets, error: outletsError } = await supabase
+    .from("outlets")
+    .select("id, name, is_youtube")
+    .in("id", activeOutletIds);
+  if (outletsError) throw new Error(`Failed to fetch outlet details: ${outletsError.message}`);
+
+  const { data: coveringArticles, error: coveringError } = await supabase
+    .from("articles")
+    .select("outlet_id")
+    .eq("story_id", storyId);
+  if (coveringError) throw new Error(`Failed to fetch covering outlets: ${coveringError.message}`);
+  const coveringIds = new Set((coveringArticles ?? []).map((a: any) => a.outlet_id));
+
+  return computeSilentOutlets((activeOutlets ?? []) as OutletSummary[], coveringIds, storyFirstSeenAt);
 }
