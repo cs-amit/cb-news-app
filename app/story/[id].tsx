@@ -21,12 +21,24 @@ export default function StoryScreen() {
       .then(async ({ story, articles }) => {
         setStory(story);
         setArticles(articles);
-        const [flags, silent] = await Promise.all([
-          fetchConflictFlags(supabase, id),
-          fetchSilentOutlets(supabase, id, story.first_seen_at),
-        ]);
-        setConflictFlags(flags);
-        setSilentOutlets(silent);
+        // Badges are an enhancement on top of the core story view, not a
+        // precondition for it — a failure fetching them (RLS hiccup,
+        // transient network blip) must not discard an already-successfully-
+        // loaded story and show a full error screen. Fail soft: log and
+        // leave conflictFlags/silentOutlets at their empty-array default.
+        try {
+          const [flags, silent] = await Promise.all([
+            fetchConflictFlags(supabase, id),
+            fetchSilentOutlets(supabase, id, story.first_seen_at),
+          ]);
+          setConflictFlags(flags);
+          setSilentOutlets(silent);
+        } catch (err) {
+          console.error(
+            "Failed to load story badges:",
+            err instanceof Error ? err.message : err
+          );
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
