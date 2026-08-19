@@ -1,4 +1,5 @@
 import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
+import { fetchConflictFlags } from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
@@ -141,6 +142,35 @@ describe("fetchMethodologyStats", () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchMethodologyStats(client)).rejects.toThrow(
       "Failed to fetch methodology stats: boom"
+    );
+  });
+});
+
+describe("fetchConflictFlags", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const eq = jest.fn().mockResolvedValue(result);
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from };
+  }
+
+  it("returns the story's conflict flags", async () => {
+    const flags = [{ outlet_id: "o1", matched_entity: "Reliance", evidence_text: "Reliance Jio..." }];
+    const { client, from } = makeMockSupabase({ data: flags, error: null });
+    const result = await fetchConflictFlags(client, "story-1");
+    expect(from).toHaveBeenCalledWith("story_conflict_flags");
+    expect(result).toEqual(flags);
+  });
+
+  it("returns an empty array when data is null", async () => {
+    const { client } = makeMockSupabase({ data: null, error: null });
+    expect(await fetchConflictFlags(client, "story-1")).toEqual([]);
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchConflictFlags(client, "story-1")).rejects.toThrow(
+      "Failed to fetch conflict flags: boom"
     );
   });
 });

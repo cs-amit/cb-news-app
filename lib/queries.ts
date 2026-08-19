@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Story, ArticleWithOutlet } from "./types";
+import { Story, ArticleWithOutlet, ConflictFlag } from "./types";
 import { OutletSummary, computeSilentOutlets } from "./silence";
 
 export async function fetchRecentStories(supabase: SupabaseClient): Promise<Story[]> {
@@ -30,7 +30,9 @@ export async function fetchStoryWithArticles(
 
   const { data: articles, error: articlesError } = await supabase
     .from("articles")
-    .select("id, title, url, published_at, outlet:outlets(id, name)")
+    .select(
+      "id, title, url, published_at, outlet:outlets(id, name, is_youtube, ownership, freedom_score, govt_lean_score, sensationalism_score)"
+    )
     .eq("story_id", storyId)
     .order("published_at", { ascending: false });
   if (articlesError) throw new Error(`Failed to fetch articles: ${articlesError.message}`);
@@ -96,4 +98,16 @@ export async function fetchMethodologyStats(supabase: SupabaseClient): Promise<M
     scoredOutletCount: scored.length,
     lastScoredAt,
   };
+}
+
+export async function fetchConflictFlags(
+  supabase: SupabaseClient,
+  storyId: string
+): Promise<ConflictFlag[]> {
+  const { data, error } = await supabase
+    .from("story_conflict_flags")
+    .select("outlet_id, matched_entity, evidence_text")
+    .eq("story_id", storyId);
+  if (error) throw new Error(`Failed to fetch conflict flags: ${error.message}`);
+  return data ?? [];
 }
