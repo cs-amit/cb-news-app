@@ -16,8 +16,10 @@ const UNCLUSTERED_WINDOW_HOURS = 48;
 // with a missing RSS date.
 const ANCHOR_WINDOW_HOURS = 72;
 
-// Page size for fetching anchors — matches PostgREST's own default row
-// ceiling, so paging requires no server-side config changes.
+// Page size for fetching anchors. 500 is a reasonable page size chosen for this
+// codebase (it carries over the Week 1 `.limit(500)` this loop replaced); it is
+// not tied to any platform default — PostgREST's `max-rows` has no default at
+// all, and Supabase's platform default is 1000.
 const ANCHOR_PAGE_SIZE = 500;
 
 // Hard safety ceiling across ALL pages combined. Not expected to be hit in
@@ -153,6 +155,10 @@ export async function clusterUnclusteredArticles(
       .not("embedding", "is", null)
       .gte("created_at", anchorCutoff)
       .order("created_at", { ascending: false })
+      // created_at is not unique, so ties could otherwise be ordered
+      // differently between page requests and skip/duplicate rows across
+      // .range() boundaries. id breaks the tie deterministically.
+      .order("id")
       .range(anchorOffset, anchorOffset + ANCHOR_PAGE_SIZE - 1);
 
     if (anchorError) {

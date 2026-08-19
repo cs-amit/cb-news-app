@@ -41,69 +41,146 @@ describe("fetchRecentStories", () => {
 });
 
 describe("fetchSilentOutlets", () => {
-  function makeMockSupabase(byTable: Record<string, { data: any; error: any }>) {
+  interface Call {
+    method: string;
+    args: any[];
+  }
+  interface Query {
+    table: string;
+    calls: Call[];
+  }
+  const CHAIN_METHODS = ["select", "gte", "eq", "in", "order", "range"];
+
+  /**
+   * Chain-recording mock: the active-outlet scan is now paginated, so the two
+   * `articles` queries have to be told apart by their chain (the scan calls
+   * `.range()`, the covering-articles query calls `.eq("story_id", ...)`).
+   */
+  function makeMockSupabase(resolve: (q: Query) => { data: any; error: any }) {
+    const queries: Query[] = [];
     const from = jest.fn((table: string) => {
-      const result = byTable[table];
+      const query: Query = { table, calls: [] };
+      queries.push(query);
       const builder: any = {};
-      const chain = () => builder;
-      builder.select = chain;
-      builder.gte = chain;
-      builder.eq = chain;
-      builder.in = chain;
-      builder.then = (onFulfilled: any) => Promise.resolve(result).then(onFulfilled);
+      for (const method of CHAIN_METHODS) {
+        builder[method] = (...args: any[]) => {
+          query.calls.push({ method, args });
+          return builder;
+        };
+      }
+      builder.then = (onFulfilled: any) => Promise.resolve(resolve(query)).then(onFulfilled);
       return builder;
     });
-    return { from } as any;
+    return { client: { from } as any, queries };
   }
 
+  const isActiveScan = (q: Query) => q.calls.some((c) => c.method === "range");
+  const rangeOffset = (q: Query) => q.calls.find((c) => c.method === "range")!.args[0];
+  const oldFirstSeen = () => new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
   it("returns outlets that are active but not covering, past the lag guard", async () => {
-    const client = makeMockSupabase({
-      articles: { data: [{ outlet_id: "o1" }, { outlet_id: "o2" }], error: null },
-      outlets: {
-        data: [
-          { id: "o1", name: "A", is_youtube: false },
-          { id: "o2", name: "B", is_youtube: false },
-        ],
-        error: null,
-      },
-    });
-    // Second call to "articles" (covering outlets for the story) needs a
-    // different result than the first (active outlets) — override `from`
-    // to return per-call results in sequence.
-    let call = 0;
-    const articleResults = [
-      { data: [{ outlet_id: "o1" }, { outlet_id: "o2" }], error: null }, // active outlets
-      { data: [{ outlet_id: "o1" }], error: null }, // covering this story
-    ];
-    client.from = jest.fn((table: string) => {
-      const builder: any = {};
-      const chain = () => builder;
-      builder.select = chain;
-      builder.gte = chain;
-      builder.eq = chain;
-      builder.in = chain;
-      builder.then = (onFulfilled: any) => {
-        const result =
-          table === "articles" ? articleResults[Math.min(call++, articleResults.length - 1)] : { data: [{ id: "o1", name: "A", is_youtube: false }, { id: "o2", name: "B", is_youtube: false }], error: null };
-        return Promise.resolve(result).then(onFulfilled);
-      };
-      return builder;
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "outlets") {
+        return {
+          data: [
+            { id: "o1", name: "A", is_youtube: false },
+            { id: "o2", name: "B", is_youtube: false },
+          ],
+          error: null,
+        };
+      }
+      // Active scan: both outlets published recently.
+      if (isActiveScan(q)) return { data: [{ outlet_id: "o1" }, { outlet_id: "o2" }], error: null };
+      // Covering this story: only o1.
+      return { data: [{ outlet_id: "o1" }], error: null };
     });
 
-    const oldFirstSeen = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen);
+    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen());
 
     expect(result.map((o) => o.id)).toEqual(["o2"]);
+    // Outlets are fetched exactly once, up front — no second `.in("id", ...)` lookup.
+    expect(queries.filter((q) => q.table === "outlets")).toHaveLength(1);
+    expect(queries[0].table).toBe("outlets");
   });
 
   it("returns an empty array when no outlet has published recently", async () => {
-    const client = makeMockSupabase({
-      articles: { data: [], error: null },
-      outlets: { data: [], error: null },
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "outlets") {
+        return { data: [{ id: "o1", name: "A", is_youtube: false }], error: null };
+      }
+      return { data: [], error: null };
     });
-    const oldFirstSeen = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen);
+
+    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen());
     expect(result).toEqual([]);
+  });
+
+  it("returns an empty array when there are no outlets at all", async () => {
+    const { client, queries } = makeMockSupabase(() => ({ data: [], error: null }));
+    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen());
+    expect(result).toEqual([]);
+    // Nothing can be silent if no outlets exist — don't scan articles at all.
+    expect(queries.filter((q) => q.table === "articles")).toHaveLength(0);
+  });
+
+  it("stops scanning articles once every known outlet has been seen active", async () => {
+    const ACTIVE_PAGE_SIZE = 500;
+    // A full first page (so a naive loop would fetch page 2) in which both of
+    // the two known outlets already appear.
+    const fullFirstPage = Array.from({ length: ACTIVE_PAGE_SIZE }, (_, i) => ({
+      outlet_id: i % 2 === 0 ? "o1" : "o2",
+    }));
+
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "outlets") {
+        return {
+          data: [
+            { id: "o1", name: "A", is_youtube: false },
+            { id: "o2", name: "B", is_youtube: false },
+          ],
+          error: null,
+        };
+      }
+      if (isActiveScan(q)) {
+        return { data: rangeOffset(q) === 0 ? fullFirstPage : [{ outlet_id: "o1" }], error: null };
+      }
+      return { data: [{ outlet_id: "o1" }], error: null };
+    });
+
+    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen());
+
+    expect(result.map((o) => o.id)).toEqual(["o2"]);
+    // The early exit is the point: one page, not a full trailing-window scan.
+    expect(queries.filter((q) => q.table === "articles" && isActiveScan(q))).toHaveLength(1);
+  });
+
+  it("warns but does not throw when the active scan hits the safety ceiling", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    // Two outlets known, but only one ever publishes — so the early exit never
+    // fires and only the ceiling stops the loop.
+    const fullPage = Array.from({ length: 500 }, () => ({ outlet_id: "o1" }));
+
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "outlets") {
+        return {
+          data: [
+            { id: "o1", name: "A", is_youtube: false },
+            { id: "o2", name: "B", is_youtube: false },
+          ],
+          error: null,
+        };
+      }
+      if (isActiveScan(q)) return { data: fullPage, error: null };
+      return { data: [], error: null };
+    });
+
+    const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen());
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("safety ceiling"));
+    // 5000-row ceiling / 500-row pages: stops after 10 pages rather than looping forever.
+    expect(queries.filter((q) => q.table === "articles" && isActiveScan(q))).toHaveLength(10);
+    expect(result.map((o) => o.id)).toEqual(["o1"]);
+    warnSpy.mockRestore();
   });
 });
 
