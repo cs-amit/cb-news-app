@@ -21,6 +21,8 @@ export interface OutletInfo {
   freedom_score: number | null;
   govt_lean_score: number | null;
   sensationalism_score: number | null;
+  govt_lean_sample_size: number | null;
+  govt_lean_updated_at: string | null;
 }
 
 export interface ArticleWithOutlet {

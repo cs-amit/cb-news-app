@@ -20,8 +20,8 @@ export default function MethodologyScreen() {
 
       <Text style={{ fontSize: 16, fontWeight: "600", marginTop: 20 }}>Ownership</Text>
       <Text style={{ marginTop: 4, color: "#333" }}>
-        Ownership data is curated from public sources (Wikipedia, Media Ownership Monitor India, and press
-        reporting) and every claim carries a citation, shown on each outlet's badge. Wording is kept
+        Ownership data is curated from public sources (Wikipedia and press reporting) and every claim
+        carries a citation, shown on each outlet's badge. Wording is kept
         neutral ("owned by") — we never use loaded terms like "controlled by" or "mouthpiece."
       </Text>
 
@@ -80,9 +80,8 @@ export default function MethodologyScreen() {
         services and mainstream broadcasters with no strong documented lean. Every channel had to be
         primarily a news or current-affairs outlet — general, political, or business/economic — rather than
         entertainment or lifestyle content, and had to maintain an active public RSS feed. Ownership,
-        editorial leadership, and any documented lean are sourced from Wikipedia, Media Ownership Monitor
-        India, or mainstream press reporting, not this app's own editorial judgment, and are cited per
-        channel. This list is not exhaustive and will be revisited periodically; inclusion is not an
+        editorial leadership, and any documented lean are sourced from Wikipedia or mainstream press
+        reporting, not this app's own editorial judgment, and are cited per channel. This list is not exhaustive and will be revisited periodically; inclusion is not an
         endorsement or condemnation of any channel.
       </Text>
 

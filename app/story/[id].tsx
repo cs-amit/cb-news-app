@@ -6,6 +6,12 @@ import { fetchStoryWithArticles, fetchConflictFlags, fetchSilentOutlets } from "
 import { OutletSummary } from "../../lib/silence";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
 
+// Shared country baseline every outlet starts from (RSF World Press Freedom
+// Index score for India), mirrored from the seed data and the Methodology
+// screen. Used only to label a score as the shared baseline vs. an
+// outlet-specific penalty — never to compute a score.
+const INDIA_BASELINE_FREEDOM_SCORE = 32;
+
 export default function StoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [story, setStory] = useState<Story | null>(null);
@@ -61,6 +67,26 @@ export default function StoryScreen() {
           outlet?.govt_lean_score != null ||
           outlet?.sensationalism_score != null ||
           outlet?.freedom_score != null;
+        // Sample size / last-updated provenance for the govt-lean score, which
+        // the Methodology page promises is shown alongside every score.
+        const govtLeanProvenance =
+          outlet?.govt_lean_sample_size != null && outlet?.govt_lean_updated_at
+            ? ` (n=${outlet.govt_lean_sample_size}, updated ${new Date(
+                outlet.govt_lean_updated_at
+              ).toLocaleDateString()})`
+            : "";
+        // Most outlets carry the identical country-baseline freedom score, so a
+        // flat "Press freedom" label reads as an outlet-specific rating it
+        // isn't. Qualify the label whenever the outlet is still sitting on the
+        // shared baseline; only an outlet that actually took the documented-
+        // incident penalty (explained by the note rendered just above) gets the
+        // unqualified label. Keyed off the score rather than merely the
+        // presence of a note, because a note does not always drive a penalty
+        // (e.g. an independence note on a baseline-scored outlet).
+        const freedomLabel =
+          outlet?.freedom_score === INDIA_BASELINE_FREEDOM_SCORE
+            ? "Press freedom (India baseline)"
+            : "Press freedom";
         return (
           <Pressable
             key={article.id}
@@ -81,6 +107,19 @@ export default function StoryScreen() {
                 Owned by: {outlet.ownership.owner}
               </Text>
             ) : null}
+            {outlet?.ownership?.citation_url ? (
+              <Text style={{ fontSize: 11, color: "#999" }}>
+                Source: {outlet.ownership.citation_url}
+              </Text>
+            ) : null}
+            {outlet?.ownership?.note ? (
+              <Text style={{ marginTop: 2, fontSize: 12, color: "#777" }}>
+                Press freedom note: {outlet.ownership.note}
+                {outlet.ownership.note_citation_url
+                  ? ` (source: ${outlet.ownership.note_citation_url})`
+                  : ""}
+              </Text>
+            ) : null}
             {flag ? (
               <Text style={{ marginTop: 2, fontSize: 12, color: "#a00" }}>
                 ⚠ Owner mentioned in this story ("{flag.matched_entity}"): {flag.evidence_text}
@@ -88,11 +127,15 @@ export default function StoryScreen() {
             ) : null}
             {hasScores ? (
               <Text style={{ marginTop: 2, fontSize: 12, color: "#777" }}>
-                {outlet?.govt_lean_score != null ? `Govt-lean: ${outlet.govt_lean_score}/100  ` : ""}
+                {outlet?.govt_lean_score != null
+                  ? `Govt-lean: ${outlet.govt_lean_score}/100${govtLeanProvenance}  `
+                  : ""}
                 {outlet?.sensationalism_score != null
                   ? `Sensationalism: ${outlet.sensationalism_score}/100  `
                   : ""}
-                {outlet?.freedom_score != null ? `Press freedom: ${outlet.freedom_score}/100` : ""}
+                {outlet?.freedom_score != null
+                  ? `${freedomLabel}: ${outlet.freedom_score}/100`
+                  : ""}
               </Text>
             ) : null}
           </Pressable>
