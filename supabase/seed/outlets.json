@@ -505,5 +505,94 @@
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
     "freedom_score": 32
+  },
+  {
+    "name": "DD News",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCKwucPzHZ7zCUIf7If-Wo1g",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Prasar Bharati (Doordarshan), owned by the Government of India via the Ministry of Information and Broadcasting",
+      "owner_aliases": ["Prasar Bharati", "Doordarshan"],
+      "citation_url": "https://en.wikipedia.org/wiki/DD_News"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "NDTV India (YouTube)",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC9CYT9gSNLevX5ey2_6CK0Q",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Majority-owned (~64.7%) by the Adani Group via RRPR Holding / Adani Media Networks; Hindi-language sister channel of NDTV",
+      "owner_aliases": ["Adani Group", "Adani Enterprises", "Gautam Adani", "Adani"],
+      "citation_url": "https://en.wikipedia.org/wiki/NDTV_India",
+      "note": "Majority ownership of parent NDTV passed to the Adani Group in December 2022, after which several senior editorial staff resigned citing concerns about editorial independence",
+      "note_citation_url": "https://www.aljazeera.com/economy/2022/12/5/indian-billionaire-adani-is-now-ndtvs-biggest-shareholder"
+    },
+    "freedom_score": 22
+  },
+  {
+    "name": "The Lallantop",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCx8Z14PpntdaxCt2hakbQLQ",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "India Today Group / Living Media India Ltd, owned by the Purie family (same parent group as Aaj Tak and Business Today)",
+      "owner_aliases": ["India Today Group", "Purie family", "Aroon Purie", "Living Media"],
+      "citation_url": "https://www.newslaundry.com/2022/07/18/who-owns-your-media-the-highs-and-lows-of-the-india-today-group"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "News Nation",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsNdeLwEZf86swPD3qJJ7Dw",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Owned by News Nation Network Pvt Ltd",
+      "citation_url": "https://en.wikipedia.org/wiki/News_Nation_TV"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "TV9 Bharatvarsh",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCOutOIcn_oho8pyVN3Ng-Pg",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Owned by Associated Broadcasting Company Pvt Ltd (ABCPL), operating as the TV9 Network",
+      "owner_aliases": ["TV9 Network", "Associated Broadcasting Company"],
+      "citation_url": "https://en.wikipedia.org/wiki/TV9_Bharatvarsh"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "News24",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCuzS3rPQAYqHcLWqOFuY0pw",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Owned by B.A.G. Films and Media Ltd (B.A.G Network); promoted by Anuradha Prasad and her husband, Indian National Congress politician Rajeev Shukla",
+      "owner_aliases": ["B.A.G. Films", "Anuradha Prasad", "Rajeev Shukla"],
+      "citation_url": "https://en.wikipedia.org/wiki/News24_(Indian_TV_channel)"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "ET Now Swadesh",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCD3CdwT8lTCe5ZGHbUBxmWA",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "The Times Group (Bennett, Coleman & Co.), owned by the Sahu Jain family; Hindi-language business channel under the ET Now brand",
+      "owner_aliases": ["Times Group", "Bennett Coleman", "Sahu Jain"],
+      "citation_url": "https://en.wikipedia.org/wiki/ET_Now"
+    },
+    "freedom_score": 32
+  },
+  {
+    "name": "Zee Business",
+    "rss_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCkXopQ3ubd-rnXnStZqCl2w",
+    "is_youtube": true,
+    "ownership": {
+      "owner": "Owned by Zee Media Corporation (Essel Group), chaired by Subhash Chandra, a BJP-nominated member of the Rajya Sabha",
+      "owner_aliases": ["Zee Media", "Essel Group", "Subhash Chandra"],
+      "citation_url": "https://en.wikipedia.org/wiki/Zee_Media_Corporation"
+    },
+    "freedom_score": 32
   }
 ]
