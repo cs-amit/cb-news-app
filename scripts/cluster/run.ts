@@ -22,8 +22,21 @@ async function main() {
       `${result.articlesMergedIntoExisting} articles merged into existing stories.`
   );
 
-  const conflictCount = await flagStoryConflicts(supabase);
-  console.log(`Flagged ${conflictCount} conflict(s) of interest.`);
+  // Conflict flagging is an enhancement layered on top of the core pipeline. A
+  // transient failure here must not abort the run before headline generation —
+  // headlines are the Week 1 core functionality and are already rate-limited to
+  // a handful of runs a day, so losing a tick to an unrelated feature is a real
+  // cost. Log and continue, matching how fillMissingHeadlines treats its own
+  // non-critical failures.
+  try {
+    const conflictCount = await flagStoryConflicts(supabase);
+    console.log(`Flagged ${conflictCount} conflict(s) of interest.`);
+  } catch (err) {
+    console.error(
+      "Failed to flag conflicts of interest; continuing to headline generation:",
+      err instanceof Error ? err.message : err
+    );
+  }
 
   // Individual headline failures (chiefly daily Gemini quota exhaustion) are
   // logged inside fillMissingHeadlines and do not fail the run. Only a genuine

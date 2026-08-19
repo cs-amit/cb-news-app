@@ -19,8 +19,13 @@ interface BatchScoreResult {
 }
 
 export function buildScoringPrompt(outlets: OutletSample[]): string {
+  // Deliberately anonymous: naming the outlet would invite the model to score
+  // from its trained-in reputation instead of the sampled headlines, which is
+  // exactly what the "do not use outside knowledge" instruction below asks it
+  // not to do (and what the Methodology page promises these scores avoid).
+  // Results map back by 1-based index, so the name is not needed downstream.
   const blocks = outlets
-    .map((o, i) => `Outlet ${i + 1}: ${o.name}\n${o.titles.map((t) => `   - ${t}`).join("\n")}`)
+    .map((o, i) => `Outlet ${i + 1}:\n${o.titles.map((t) => `   - ${t}`).join("\n")}`)
     .join("\n\n");
 
   return [

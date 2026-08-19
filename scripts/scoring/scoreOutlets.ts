@@ -21,7 +21,11 @@ export async function scoreOutlets(
       .from("articles")
       .select("title")
       .eq("outlet_id", outlet.id)
-      .order("published_at", { ascending: false })
+      // published_at is nullable (feeds sometimes omit a date). Postgres sorts
+      // NULLS FIRST by default on DESC, so without nullsFirst:false an outlet
+      // with any undated articles would sample those instead of its actual
+      // most-recent headlines.
+      .order("published_at", { ascending: false, nullsFirst: false })
       .limit(MAX_SAMPLE_PER_OUTLET);
     if (articlesError || !articles || articles.length < MIN_SAMPLE_SIZE) continue;
     samples.push({ id: outlet.id, name: outlet.name, titles: articles.map((a: any) => a.title) });

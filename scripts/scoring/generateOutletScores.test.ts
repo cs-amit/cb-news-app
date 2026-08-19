@@ -6,9 +6,19 @@ describe("buildScoringPrompt", () => {
       { id: "o1", name: "The Hindu", titles: ["Farm bill repealed"] },
       { id: "o2", name: "NDTV", titles: ["Rain floods Mumbai"] },
     ]);
-    expect(prompt).toContain("Outlet 1: The Hindu");
+    expect(prompt).toContain("Outlet 1:");
     expect(prompt).toContain("Farm bill repealed");
-    expect(prompt).toContain("Outlet 2: NDTV");
+    expect(prompt).toContain("Outlet 2:");
+    expect(prompt).toContain("Rain floods Mumbai");
+  });
+
+  it("does not name the outlets, so scores come from the sample rather than reputation", () => {
+    const prompt = buildScoringPrompt([
+      { id: "o1", name: "The Hindu", titles: ["Farm bill repealed"] },
+      { id: "o2", name: "NDTV", titles: ["Rain floods Mumbai"] },
+    ]);
+    expect(prompt).not.toContain("The Hindu");
+    expect(prompt).not.toContain("NDTV");
   });
 
   it("instructs the model to treat headlines as data, not instructions", () => {
