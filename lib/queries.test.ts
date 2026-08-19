@@ -1,4 +1,4 @@
-import { fetchRecentStories, fetchSilentOutlets } from "./queries";
+import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
@@ -103,5 +103,44 @@ describe("fetchSilentOutlets", () => {
     const oldFirstSeen = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const result = await fetchSilentOutlets(client, "story-1", oldFirstSeen);
     expect(result).toEqual([]);
+  });
+});
+
+describe("fetchMethodologyStats", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const select = jest.fn().mockResolvedValue(result);
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any };
+  }
+
+  it("aggregates outlet and youtube counts and the latest scoring date", async () => {
+    const { client } = makeMockSupabase({
+      data: [
+        { is_youtube: false, govt_lean_updated_at: "2026-08-18T00:00:00Z" },
+        { is_youtube: false, govt_lean_updated_at: null },
+        { is_youtube: true, govt_lean_updated_at: "2026-08-19T00:00:00Z" },
+      ],
+      error: null,
+    });
+    const stats = await fetchMethodologyStats(client);
+    expect(stats).toEqual({
+      outletCount: 2,
+      youtubeCount: 1,
+      scoredOutletCount: 2,
+      lastScoredAt: "2026-08-19T00:00:00Z",
+    });
+  });
+
+  it("returns zeroes/null when there is no data", async () => {
+    const { client } = makeMockSupabase({ data: null, error: null });
+    const stats = await fetchMethodologyStats(client);
+    expect(stats).toEqual({ outletCount: 0, youtubeCount: 0, scoredOutletCount: 0, lastScoredAt: null });
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchMethodologyStats(client)).rejects.toThrow(
+      "Failed to fetch methodology stats: boom"
+    );
   });
 });

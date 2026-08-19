@@ -72,3 +72,28 @@ export async function fetchSilentOutlets(
 
   return computeSilentOutlets((activeOutlets ?? []) as OutletSummary[], coveringIds, storyFirstSeenAt);
 }
+
+export interface MethodologyStats {
+  outletCount: number;
+  youtubeCount: number;
+  scoredOutletCount: number;
+  lastScoredAt: string | null;
+}
+
+export async function fetchMethodologyStats(supabase: SupabaseClient): Promise<MethodologyStats> {
+  const { data, error } = await supabase.from("outlets").select("is_youtube, govt_lean_updated_at");
+  if (error) throw new Error(`Failed to fetch methodology stats: ${error.message}`);
+  const rows = data ?? [];
+  const scored = rows.filter((r: any) => r.govt_lean_updated_at);
+  const lastScoredAt = scored.reduce(
+    (latest: string | null, r: any) =>
+      !latest || r.govt_lean_updated_at > latest ? r.govt_lean_updated_at : latest,
+    null as string | null
+  );
+  return {
+    outletCount: rows.filter((r: any) => !r.is_youtube).length,
+    youtubeCount: rows.filter((r: any) => r.is_youtube).length,
+    scoredOutletCount: scored.length,
+    lastScoredAt,
+  };
+}

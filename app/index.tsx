@@ -25,6 +25,11 @@ export default function FeedScreen() {
     <FlatList
       data={stories}
       keyExtractor={(item) => item.id}
+      ListHeaderComponent={
+        <Pressable onPress={() => router.push("/methodology")} style={{ padding: 16 }}>
+          <Text style={{ color: "#0066cc" }}>How are these badges calculated? Methodology →</Text>
+        </Pressable>
+      }
       renderItem={({ item }) => (
         <Pressable
           onPress={() => router.push(`/story/${item.id}`)}
