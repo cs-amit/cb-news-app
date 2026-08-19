@@ -135,7 +135,7 @@
     "is_youtube": false,
     "ownership": {
       "owner": "Network18 Media & Investments Ltd, majority-owned by Reliance Industries via the Independent Media Trust (TV18 merged into Network18 Oct 2024)",
-      "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
+      "owner_aliases": ["Reliance Industries", "Mukesh Ambani", "Network18", "Jio"],
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
     "freedom_score": 32
@@ -190,11 +190,9 @@
     "ownership": {
       "owner": "Deccan Chronicle Holdings Ltd; founder-promoter T. Venkattram Reddy",
       "owner_aliases": ["T. Venkattram Reddy", "Deccan Chronicle Holdings"],
-      "citation_url": "https://en.wikipedia.org/wiki/Deccan_Chronicle",
-      "note": "Former DCHL chairman T. Venkattram Reddy was arrested by India's Enforcement Directorate in June 2023 in a money-laundering case tied to the company",
-      "note_citation_url": "https://www.business-standard.com/india-news/who-is-t-venkattram-reddy-the-man-arrested-by-ed-in-money-laundering-case-123061400869_1.html"
+      "citation_url": "https://en.wikipedia.org/wiki/Deccan_Chronicle"
     },
-    "freedom_score": 22
+    "freedom_score": 32
   },
   {
     "name": "Swarajya",
@@ -256,12 +254,10 @@
     "is_youtube": false,
     "ownership": {
       "owner": "Associated Journals Ltd, owned by Young Indian Ltd; Sonia Gandhi and Rahul Gandhi hold 76% of Young Indian, senior Congress leaders hold the remainder",
-      "owner_aliases": ["Sonia Gandhi", "Rahul Gandhi", "Young Indian", "Indian National Congress"],
-      "citation_url": "https://en.wikipedia.org/wiki/National_Herald",
-      "note": "Subject of an ongoing Enforcement Directorate money-laundering case over the Associated Journals-Young India asset transfer, with a 2025 chargesheet naming Sonia and Rahul Gandhi",
-      "note_citation_url": "https://en.wikipedia.org/wiki/National_Herald"
+      "owner_aliases": ["Sonia Gandhi", "Rahul Gandhi", "Indian National Congress"],
+      "citation_url": "https://en.wikipedia.org/wiki/National_Herald"
     },
-    "freedom_score": 22
+    "freedom_score": 32
   },
   {
     "name": "Down To Earth",
@@ -305,7 +301,8 @@
       "owner": "Independent; run by journalist Ravish Kumar, formerly Senior Executive Editor of NDTV India",
       "owner_aliases": ["Ravish Kumar"],
       "citation_url": "https://en.wikipedia.org/wiki/Ravish_Kumar",
-      "note": "Resigned from NDTV after its December 2022 acquisition by the Adani Group and now publishes independently on YouTube; commentary is frequently critical of government policy."
+      "note": "Resigned from NDTV after its December 2022 acquisition by the Adani Group and now publishes independently on YouTube; commentary is frequently critical of government policy.",
+      "note_citation_url": "https://en.wikipedia.org/wiki/Ravish_Kumar"
     },
     "freedom_score": 32
   },
@@ -460,7 +457,7 @@
     "is_youtube": true,
     "ownership": {
       "owner": "Network18 Media & Investments Ltd, majority-owned by Reliance Industries",
-      "owner_aliases": ["Reliance Industries", "Reliance", "Mukesh Ambani", "Network18", "Jio"],
+      "owner_aliases": ["Reliance Industries", "Mukesh Ambani", "Network18", "Jio"],
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
     "freedom_score": 32
@@ -493,7 +490,7 @@
     "is_youtube": true,
     "ownership": {
       "owner": "Joint venture between Network18 (Reliance Industries) and Versant; markets- and economy-focused",
-      "owner_aliases": ["Network18", "Reliance Industries", "Reliance"],
+      "owner_aliases": ["Network18", "Reliance Industries"],
       "citation_url": "https://en.wikipedia.org/wiki/CNBC_TV18"
     },
     "freedom_score": 32
@@ -504,7 +501,7 @@
     "is_youtube": true,
     "ownership": {
       "owner": "Network18 (Reliance Industries); carries a mix of markets coverage and general breaking news syndicated across the Network18 group",
-      "owner_aliases": ["Network18", "Reliance Industries", "Reliance"],
+      "owner_aliases": ["Network18", "Reliance Industries"],
       "citation_url": "https://en.wikipedia.org/wiki/Network18_Group"
     },
     "freedom_score": 32
