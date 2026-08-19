@@ -2977,8 +2977,8 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, ActivityIndicator, Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
-import { fetchStoryWithArticles, fetchConflictFlags } from "../../lib/queries";
-import { fetchSilentOutlets, OutletSummary } from "../../lib/silence";
+import { fetchStoryWithArticles, fetchConflictFlags, fetchSilentOutlets } from "../../lib/queries";
+import { OutletSummary } from "../../lib/silence";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
 
 export default function StoryScreen() {
