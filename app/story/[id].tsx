@@ -4,6 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { fetchStoryWithArticles, fetchConflictFlags, fetchSilentOutlets } from "../../lib/queries";
 import { OutletSummary } from "../../lib/silence";
+import { pickComparisonArticles } from "../../lib/comparison";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
 
 // Shared country baseline every outlet starts from (RSF World Press Freedom
@@ -63,6 +64,11 @@ export default function StoryScreen() {
       {articles.map((article) => {
         const outlet = article.outlet;
         const flag = outlet ? flagsByOutlet.get(outlet.id) : undefined;
+        // Only needed when this outlet is flagged — computing it unconditionally
+        // is cheap (no fetch, just filtering/sorting the already-loaded list).
+        const comparisons = flag && outlet
+          ? pickComparisonArticles(articles, outlet.id, outlet.govt_lean_score)
+          : [];
         const hasScores =
           outlet?.govt_lean_score != null ||
           outlet?.sensationalism_score != null ||
@@ -124,6 +130,24 @@ export default function StoryScreen() {
               <Text style={{ marginTop: 2, fontSize: 12, color: "#a00" }}>
                 ⚠ Owner mentioned in this story ("{flag.matched_entity}"): {flag.evidence_text}
               </Text>
+            ) : null}
+            {comparisons.length > 0 ? (
+              <View style={{ marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: "#777" }}>Compare coverage:</Text>
+                {comparisons.map((comparisonArticle) => (
+                  <Pressable
+                    key={comparisonArticle.id}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      Linking.openURL(comparisonArticle.url);
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: "#0066cc", marginTop: 2 }}>
+                      {comparisonArticle.outlet?.name ?? "Unknown outlet"}: {comparisonArticle.title}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             ) : null}
             {hasScores ? (
               <Text style={{ marginTop: 2, fontSize: 12, color: "#777" }}>
