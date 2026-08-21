@@ -31,14 +31,23 @@ export interface DailyDigestStats {
   silentCount: number;
 }
 
+// Same defect class as lib/shareCopy.ts's buildShareText: assertEthicalCopy
+// must run on the AUTHORED template, not on a string with a journalist's
+// headline already interpolated into it — an ordinary headline (e.g. "IMD
+// issues heavy rain warning...") would otherwise trip the banned-pattern
+// guard and throw. Build with a placeholder, assert that, substitute after
+// via a function replacer (avoids "$"-in-headline replacement-pattern bugs).
+const HEADLINE_PLACEHOLDER = " HEADLINE ";
+
 export function buildDailyDigestCopy(stats: DailyDigestStats): { title: string; body: string } {
   const title = "Today's story, from every side";
-  const body =
+  const template =
     stats.silentCount > 0
-      ? `"${stats.topStoryHeadline}" has ${stats.sourceCount} sources covering it, and ${stats.silentCount} outlets haven't weighed in yet.`
-      : `"${stats.topStoryHeadline}" has ${stats.sourceCount} sources covering it. See how they compare.`;
+      ? `"${HEADLINE_PLACEHOLDER}" has ${stats.sourceCount} sources covering it, and ${stats.silentCount} outlets haven't weighed in yet.`
+      : `"${HEADLINE_PLACEHOLDER}" has ${stats.sourceCount} sources covering it. See how they compare.`;
 
   assertEthicalCopy(title);
-  assertEthicalCopy(body);
+  assertEthicalCopy(template);
+  const body = template.replace(HEADLINE_PLACEHOLDER, () => stats.topStoryHeadline);
   return { title, body };
 }

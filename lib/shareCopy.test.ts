@@ -25,4 +25,18 @@ describe("buildShareText", () => {
   it("never throws the ethical-copy guard for its own output", () => {
     expect(() => buildShareText({ headline: "Any story" }, 3, 1)).not.toThrow();
   });
+
+  it("does not throw for a real headline containing a banned word", () => {
+    // Regression for the Critical finding: assertEthicalCopy was previously
+    // called AFTER the headline was interpolated into the share text, so an
+    // ordinary headline containing "warning" (very common in Indian weather/
+    // civic reporting) crashed the share flow before Share.share() was even
+    // called.
+    const headline = "IMD issues heavy rain warning for coastal Karnataka";
+    let text = "";
+    expect(() => {
+      text = buildShareText({ headline }, 5, 1);
+    }).not.toThrow();
+    expect(text).toContain(headline);
+  });
 });

@@ -46,4 +46,17 @@ describe("buildDailyDigestCopy", () => {
       buildDailyDigestCopy({ topStoryHeadline: "Any story", sourceCount: 3, silentCount: 1 })
     ).not.toThrow();
   });
+
+  it("does not throw for a real top-story headline containing a banned word", () => {
+    // Regression for the Critical finding: assertEthicalCopy was previously
+    // called AFTER stats.topStoryHeadline was interpolated into the body, so
+    // an ordinary headline containing "warning" crashed digest rescheduling
+    // (silently, since app/index.tsx's rescheduleDigest swallows the error).
+    const topStoryHeadline = "IMD issues heavy rain warning for coastal Karnataka";
+    let body = "";
+    expect(() => {
+      ({ body } = buildDailyDigestCopy({ topStoryHeadline, sourceCount: 5, silentCount: 1 }));
+    }).not.toThrow();
+    expect(body).toContain(topStoryHeadline);
+  });
 });
