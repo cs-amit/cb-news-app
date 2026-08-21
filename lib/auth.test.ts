@@ -55,3 +55,48 @@ describe("ensureAnonymousSession", () => {
     );
   });
 });
+
+describe("getUserId", () => {
+  // getUserId caches its bootstrap promise in module-level state, so each
+  // test needs a fresh copy of the module to avoid leaking state between
+  // cases.
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  it("retries the bootstrap on the next call after a failed first call", async () => {
+    const { getUserId } = require("./auth");
+    const getSession = jest
+      .fn()
+      .mockResolvedValue({ data: { session: null }, error: null });
+    const signInAnonymously = jest
+      .fn()
+      .mockResolvedValueOnce({ data: { user: null }, error: { message: "boom" } })
+      .mockResolvedValueOnce({ data: { user: { id: "recovered-user" } }, error: null });
+    const client = { auth: { getSession, signInAnonymously } } as any;
+
+    await expect(getUserId(client)).rejects.toThrow("Failed to sign in anonymously: boom");
+
+    const userId = await getUserId(client);
+    expect(userId).toBe("recovered-user");
+    expect(signInAnonymously).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not re-fetch when the first call succeeds", async () => {
+    const { getUserId } = require("./auth");
+    const getSession = jest
+      .fn()
+      .mockResolvedValue({ data: { session: null }, error: null });
+    const signInAnonymously = jest
+      .fn()
+      .mockResolvedValue({ data: { user: { id: "cached-user" } }, error: null });
+    const client = { auth: { getSession, signInAnonymously } } as any;
+
+    const first = await getUserId(client);
+    const second = await getUserId(client);
+
+    expect(first).toBe("cached-user");
+    expect(second).toBe("cached-user");
+    expect(signInAnonymously).toHaveBeenCalledTimes(1);
+  });
+});

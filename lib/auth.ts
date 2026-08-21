@@ -26,8 +26,16 @@ export async function ensureAnonymousSession(supabase: SupabaseClient): Promise<
 let cachedUserId: Promise<string> | null = null;
 
 // Memoized so every screen can call this cheaply without re-hitting
-// getSession() on every render — one bootstrap per app lifetime.
+// getSession() on every render — one bootstrap per app lifetime. A failed
+// bootstrap (e.g. transient network error at cold start) clears the cache
+// so the next call can retry instead of every screen inheriting the same
+// stale rejection for the rest of the process lifetime.
 export function getUserId(supabase: SupabaseClient): Promise<string> {
-  if (!cachedUserId) cachedUserId = ensureAnonymousSession(supabase);
+  if (!cachedUserId) {
+    cachedUserId = ensureAnonymousSession(supabase).catch((err) => {
+      cachedUserId = null;
+      throw err;
+    });
+  }
   return cachedUserId;
 }
