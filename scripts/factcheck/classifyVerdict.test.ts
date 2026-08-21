@@ -17,4 +17,13 @@ describe("classifyVerdict", () => {
   it("falls back to Unverified for ambiguous titles", () => {
     expect(classifyVerdict("A look at this week's viral claims")).toBe("Unverified");
   });
+
+  it("does not invert negated verdicts to True", () => {
+    // Regression: the old True regex matched "true"/"confirmed" as
+    // substrings regardless of a preceding negation, so these would have
+    // wrongly classified as "True" and attributed a confirming verdict to
+    // a named fact-checker on-screen.
+    expect(classifyVerdict("This claim is not true")).toBe("Unverified");
+    expect(classifyVerdict("Claim not yet confirmed by officials")).toBe("Unverified");
+  });
 });
