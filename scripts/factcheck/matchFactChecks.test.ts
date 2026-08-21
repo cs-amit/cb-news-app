@@ -84,6 +84,27 @@ describe("matchFactChecksToStories", () => {
     expect(queries.filter((q) => q.table === "fact_checks" && q.calls.some((c) => c.method === "update"))).toHaveLength(0);
   });
 
+  it("orders the unmatched-fact-check query deterministically with a recency floor", async () => {
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "fact_checks" && q.calls.some((c) => c.method === "is")) {
+        return { data: [], error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    await matchFactChecksToStories(client, jest.fn(), 0.8);
+
+    const unmatchedQuery = queries.find((q) => q.table === "fact_checks")!;
+    const orderCalls = unmatchedQuery.calls.filter((c) => c.method === "order").map((c) => c.args);
+    expect(orderCalls).toEqual([
+      ["published_at", { ascending: false }],
+      ["id"],
+    ]);
+    expect(unmatchedQuery.calls.some((c) => c.method === "gte" && c.args[0] === "published_at")).toBe(
+      true
+    );
+  });
+
   it("returns 0 without embedding anything when there are no unmatched fact-checks", async () => {
     const { client } = makeMockSupabase((q) => {
       if (q.table === "fact_checks") return { data: [], error: null };

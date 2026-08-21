@@ -6,16 +6,33 @@ const RECENT_STORY_WINDOW_HOURS = 72;
 // fact-checks, keeping this comfortably inside Gemini's separate 1,000/day
 // embedding quota (learned the hard way during Week 2's backlog catch-up).
 const MAX_PER_RUN = 20;
+// Fact-checks that never clear the similarity threshold stay "unmatched"
+// forever with no recency floor otherwise — an unbounded, unordered pool
+// that wastes embedding-API quota re-selecting (or never selecting) the
+// same rows arbitrarily every run. 7 days is a deliberately generous
+// give-up boundary relative to the 72-hour story-matching window above.
+const UNMATCHED_RECENCY_WINDOW_DAYS = 7;
 
 export async function matchFactChecksToStories(
   supabase: SupabaseClient,
   embedFn: (text: string) => Promise<number[]>,
   similarityThreshold: number
 ): Promise<number> {
+  const unmatchedCutoff = new Date(
+    Date.now() - UNMATCHED_RECENCY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+  // Deterministic order + a recency floor, matching the tiebreaker pattern
+  // used elsewhere in this codebase (scripts/cluster/clusterStories.ts,
+  // scripts/conflict/flagStoryConflicts.ts, lib/queries.ts's
+  // fetchSilentOutlets) — without an .order(), which rows come back under
+  // LIMIT is undefined.
   const { data: unmatched, error } = await supabase
     .from("fact_checks")
     .select("id, claim")
     .is("matched_story_id", null)
+    .gte("published_at", unmatchedCutoff)
+    .order("published_at", { ascending: false })
+    .order("id")
     .limit(MAX_PER_RUN);
   if (error) throw new Error(`Failed to fetch unmatched fact-checks: ${error.message}`);
   if (!unmatched || unmatched.length === 0) return 0;
