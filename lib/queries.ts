@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { Story, ArticleWithOutlet, ConflictFlag } from "./types";
 import { OutletSummary, computeSilentOutlets } from "./silence";
 import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
+import { PollResponseValue } from "./polls";
 
 export async function fetchRecentStories(supabase: SupabaseClient): Promise<Story[]> {
   const { data, error } = await supabase
@@ -247,4 +248,47 @@ export async function recomputeAndSaveStreak(
   if (updateError) throw new Error(`Failed to save streak: ${updateError.message}`);
 
   return { streakCount, sidesSeenTotal };
+}
+
+export async function submitPollResponse(
+  supabase: SupabaseClient,
+  userId: string,
+  storyId: string,
+  outletId: string,
+  response: PollResponseValue
+): Promise<void> {
+  const { error } = await supabase
+    .from("outlet_poll_responses")
+    .upsert(
+      { user_id: userId, story_id: storyId, outlet_id: outletId, response },
+      { onConflict: "user_id,story_id,outlet_id" }
+    );
+  if (error) throw new Error(`Failed to submit poll response: ${error.message}`);
+}
+
+export interface PollTally {
+  critical: number;
+  balanced: number;
+  friendly: number;
+  total: number;
+}
+
+export async function fetchPollTally(
+  supabase: SupabaseClient,
+  storyId: string,
+  outletId: string
+): Promise<PollTally> {
+  const { data, error } = await supabase
+    .from("outlet_poll_tallies")
+    .select("response, response_count")
+    .eq("story_id", storyId)
+    .eq("outlet_id", outletId);
+  if (error) throw new Error(`Failed to fetch poll tally: ${error.message}`);
+
+  const tally: PollTally = { critical: 0, balanced: 0, friendly: 0, total: 0 };
+  for (const row of (data ?? []) as { response: PollResponseValue; response_count: number }[]) {
+    tally[row.response] = row.response_count;
+    tally.total += row.response_count;
+  }
+  return tally;
 }

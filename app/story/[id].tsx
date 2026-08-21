@@ -10,8 +10,12 @@ import {
   fetchFactChecks,
   recordArticleView,
   recomputeAndSaveStreak,
+  submitPollResponse,
+  fetchPollTally,
   FactCheck,
+  PollTally,
 } from "../../lib/queries";
+import { shouldShowPoll } from "../../lib/polls";
 import { OutletSummary } from "../../lib/silence";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { buildShareText } from "../../lib/shareCopy";
@@ -33,6 +37,18 @@ export default function StoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [pollTallies, setPollTallies] = useState<Record<string, PollTally>>({});
+
+  async function handlePollResponse(outletId: string, response: "critical" | "balanced" | "friendly") {
+    if (!userId) return;
+    try {
+      await submitPollResponse(supabase, userId, story!.id, outletId, response);
+      const tally = await fetchPollTally(supabase, story!.id, outletId);
+      setPollTallies((prev) => ({ ...prev, [outletId]: tally }));
+    } catch (err) {
+      console.error("Failed to submit poll response:", err);
+    }
+  }
 
   useEffect(() => {
     getUserId(supabase)
@@ -226,6 +242,31 @@ export default function StoryScreen() {
                   ? `${freedomLabel}: ${outlet.freedom_score}/100`
                   : ""}
               </Text>
+            ) : null}
+            {outlet && shouldShowPoll(outlet) ? (
+              <View style={{ marginTop: 6 }}>
+                <Text style={{ fontSize: 12, color: "#777" }}>
+                  Did this outlet feel balanced covering this?
+                  {pollTallies[outlet.id]?.total
+                    ? ` (${Math.round(
+                        (pollTallies[outlet.id].balanced / pollTallies[outlet.id].total) * 100
+                      )}% of ${pollTallies[outlet.id].total} readers said balanced)`
+                    : ""}
+                </Text>
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                  {(["critical", "balanced", "friendly"] as const).map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handlePollResponse(outlet.id, option);
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: "#0066cc" }}>{option}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             ) : null}
           </Pressable>
         );
