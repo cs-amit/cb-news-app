@@ -10,6 +10,7 @@
     "expo": "~57.0.13",
     "expo-constants": "~57.0.11",
     "expo-linking": "~57.0.6",
+    "expo-notifications": "~57.0.13",
     "expo-router": "~57.0.13",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
@@ -25,6 +26,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/react": "~19.2.2",
+    "cross-env": "^10.1.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "tsx": "^4.23.12",
@@ -39,7 +41,7 @@
     "ingest": "tsx scripts/ingest/run.ts",
     "cluster": "tsx scripts/cluster/run.ts",
     "score": "tsx scripts/scoring/run.ts",
-    "test": "jest"
+    "test": "cross-env TZ=UTC jest"
   },
   "private": true
 }
