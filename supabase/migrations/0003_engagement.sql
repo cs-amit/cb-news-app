@@ -1,10 +1,10 @@
 create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  streak_count int not null default 0,
-  longest_streak int not null default 0,
-  sides_seen_total int not null default 0,
+  streak_count int not null default 0 check (streak_count >= 0),
+  longest_streak int not null default 0 check (longest_streak >= 0),
+  sides_seen_total int not null default 0 check (sides_seen_total >= 0),
   notification_opt_in boolean not null default false,
-  notification_hour int not null default 9,
+  notification_hour int not null default 9 check (notification_hour between 0 and 23),
   created_at timestamptz not null default now()
 );
 
