@@ -4,7 +4,14 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/auth";
-import { fetchRecentStories, fetchProfile, Profile } from "../lib/queries";
+import {
+  fetchRecentStories,
+  fetchProfile,
+  fetchStoryWithArticles,
+  fetchSilentOutlets,
+  recomputeAndSaveStreak,
+  Profile,
+} from "../lib/queries";
 import { Story } from "../lib/types";
 import {
   requestNotificationPermission,
@@ -38,6 +45,13 @@ export default function FeedScreen() {
     getUserId(supabase)
       .then(async (id) => {
         setUserId(id);
+        // Recompute the streak/sides-seen numbers before reading the profile
+        // for display. The Story screen is the only other place that ever
+        // recomputes them (on an article tap), and Expo Router keeps this
+        // Feed screen mounted while the user navigates to a story and back —
+        // without this, a stale streak from before the visit would keep
+        // showing, and a lapsed streak would never converge back down.
+        await recomputeAndSaveStreak(supabase, id);
         const p = await fetchProfile(supabase, id);
         setProfile(p);
 
@@ -66,13 +80,19 @@ export default function FeedScreen() {
       const recent = await fetchRecentStories(supabase);
       if (recent.length === 0) return;
       const top = recent[0];
+      // Real per-story counts, not hardcoded placeholders — the opt-in
+      // banner promises a genuine silence signal ("who's silent on it"),
+      // so the digest must reflect this story's actual source/silent
+      // counts rather than a flat sourceCount:1/silentCount:0 that made
+      // the feature a no-op and read as ungrammatical "1 sources."
+      const [{ articles }, silentOutlets] = await Promise.all([
+        fetchStoryWithArticles(supabase, top.id),
+        fetchSilentOutlets(supabase, top.id, top.first_seen_at),
+      ]);
       const content = buildDailyDigestCopy({
         topStoryHeadline: top.canonical_headline ?? "Today's top story",
-        // Feed-level stats only — not a per-story source/silence fetch,
-        // to keep this cheap on every app open. "1" is a conservative
-        // floor since the story is on the feed at all (≥1 source exists).
-        sourceCount: 1,
-        silentCount: 0,
+        sourceCount: articles.length,
+        silentCount: silentOutlets.length,
       });
       await scheduleDailyDigest(content, hour);
     } catch (err) {
