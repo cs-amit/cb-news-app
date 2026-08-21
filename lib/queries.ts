@@ -292,3 +292,34 @@ export async function fetchPollTally(
   }
   return tally;
 }
+
+// Tallies for every outlet on a story in one query, rather than one
+// fetchPollTally call per outlet — the same query shape as fetchPollTally
+// with the outlet_id filter dropped, grouped client-side instead. This is
+// what lets the Story screen show "X% of readers said balanced" for every
+// eligible outlet as soon as the screen loads, not just after the current
+// viewer submits their own vote in this session.
+export async function fetchPollTallies(
+  supabase: SupabaseClient,
+  storyId: string
+): Promise<Record<string, PollTally>> {
+  const { data, error } = await supabase
+    .from("outlet_poll_tallies")
+    .select("outlet_id, response, response_count")
+    .eq("story_id", storyId);
+  if (error) throw new Error(`Failed to fetch poll tallies: ${error.message}`);
+
+  const tallies: Record<string, PollTally> = {};
+  for (const row of (data ?? []) as {
+    outlet_id: string;
+    response: PollResponseValue;
+    response_count: number;
+  }[]) {
+    if (!tallies[row.outlet_id]) {
+      tallies[row.outlet_id] = { critical: 0, balanced: 0, friendly: 0, total: 0 };
+    }
+    tallies[row.outlet_id][row.response] = row.response_count;
+    tallies[row.outlet_id].total += row.response_count;
+  }
+  return tallies;
+}

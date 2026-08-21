@@ -12,6 +12,7 @@ import {
   recomputeAndSaveStreak,
   submitPollResponse,
   fetchPollTally,
+  fetchPollTallies,
   FactCheck,
   PollTally,
 } from "../../lib/queries";
@@ -68,14 +69,16 @@ export default function StoryScreen() {
         // loaded story and show a full error screen. Fail soft: log and
         // leave conflictFlags/silentOutlets at their empty-array default.
         try {
-          const [flags, silent, checks] = await Promise.all([
+          const [flags, silent, checks, tallies] = await Promise.all([
             fetchConflictFlags(supabase, id),
             fetchSilentOutlets(supabase, id, story.first_seen_at),
             fetchFactChecks(supabase, id),
+            fetchPollTallies(supabase, id),
           ]);
           setConflictFlags(flags);
           setSilentOutlets(silent);
           setFactChecks(checks);
+          setPollTallies(tallies);
         } catch (err) {
           console.error(
             "Failed to load story badges:",

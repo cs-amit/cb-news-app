@@ -1,7 +1,7 @@
 import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
 import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
-import { submitPollResponse, fetchPollTally } from "./queries";
+import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
@@ -508,6 +508,47 @@ describe("fetchPollTally", () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchPollTally(client, "story-1", "outlet-1")).rejects.toThrow(
       "Failed to fetch poll tally: boom"
+    );
+  });
+});
+
+describe("fetchPollTallies", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const eq = jest.fn().mockResolvedValue(result);
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from, select, eq };
+  }
+
+  it("aggregates tallies per outlet across the whole story in one query", async () => {
+    const { client, from, eq } = makeMockSupabase({
+      data: [
+        { outlet_id: "o1", response: "balanced", response_count: 7 },
+        { outlet_id: "o1", response: "critical", response_count: 2 },
+        { outlet_id: "o2", response: "friendly", response_count: 3 },
+      ],
+      error: null,
+    });
+    const tallies = await fetchPollTallies(client, "story-1");
+    expect(from).toHaveBeenCalledWith("outlet_poll_tallies");
+    // No outlet_id filter — this is the whole-story query, not per-outlet.
+    expect(eq).toHaveBeenCalledWith("story_id", "story-1");
+    expect(eq).toHaveBeenCalledTimes(1);
+    expect(tallies).toEqual({
+      o1: { critical: 2, balanced: 7, friendly: 0, total: 9 },
+      o2: { critical: 0, balanced: 0, friendly: 3, total: 3 },
+    });
+  });
+
+  it("returns an empty object when there are no responses yet", async () => {
+    const { client } = makeMockSupabase({ data: [], error: null });
+    expect(await fetchPollTallies(client, "story-1")).toEqual({});
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchPollTallies(client, "story-1")).rejects.toThrow(
+      "Failed to fetch poll tallies: boom"
     );
   });
 });
