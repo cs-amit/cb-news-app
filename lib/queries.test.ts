@@ -1,5 +1,6 @@
 import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
 import { fetchConflictFlags } from "./queries";
+import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
@@ -267,6 +268,153 @@ describe("fetchConflictFlags", () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchConflictFlags(client, "story-1")).rejects.toThrow(
       "Failed to fetch conflict flags: boom"
+    );
+  });
+});
+
+describe("recordArticleView", () => {
+  function makeMockSupabase(result: { error: any }) {
+    const upsert = jest.fn().mockResolvedValue(result);
+    const from = jest.fn().mockReturnValue({ upsert });
+    return { client: { from } as any, upsert, from };
+  }
+
+  it("upserts a view row, ignoring duplicates", async () => {
+    const { client, upsert, from } = makeMockSupabase({ error: null });
+    await recordArticleView(client, "user-1", "story-1", "outlet-1");
+    expect(from).toHaveBeenCalledWith("user_story_views");
+    expect(upsert).toHaveBeenCalledWith(
+      { user_id: "user-1", story_id: "story-1", outlet_id: "outlet-1" },
+      { onConflict: "user_id,story_id,outlet_id", ignoreDuplicates: true }
+    );
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ error: { message: "boom" } });
+    await expect(recordArticleView(client, "user-1", "story-1", "outlet-1")).rejects.toThrow(
+      "Failed to record article view: boom"
+    );
+  });
+});
+
+describe("fetchProfile", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const maybeSingle = jest.fn().mockResolvedValue(result);
+    const eq = jest.fn().mockReturnValue({ maybeSingle });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from, eq };
+  }
+
+  it("returns the profile row", async () => {
+    const profile = {
+      id: "user-1",
+      streak_count: 3,
+      longest_streak: 5,
+      sides_seen_total: 12,
+      notification_opt_in: true,
+      notification_hour: 9,
+    };
+    const { client, from, eq } = makeMockSupabase({ data: profile, error: null });
+    const result = await fetchProfile(client, "user-1");
+    expect(from).toHaveBeenCalledWith("profiles");
+    expect(eq).toHaveBeenCalledWith("id", "user-1");
+    expect(result).toEqual(profile);
+  });
+
+  it("returns null when no profile row exists yet", async () => {
+    const { client } = makeMockSupabase({ data: null, error: null });
+    expect(await fetchProfile(client, "user-1")).toBeNull();
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchProfile(client, "user-1")).rejects.toThrow(
+      "Failed to fetch profile: boom"
+    );
+  });
+});
+
+describe("recomputeAndSaveStreak", () => {
+  interface Call {
+    method: string;
+    args: any[];
+  }
+  interface Query {
+    table: string;
+    calls: Call[];
+  }
+  const CHAIN_METHODS = ["select", "update", "eq", "gte", "maybeSingle"];
+
+  function makeMockSupabase(resolve: (q: Query) => { data: any; error: any }) {
+    const queries: Query[] = [];
+    const from = jest.fn((table: string) => {
+      const query: Query = { table, calls: [] };
+      queries.push(query);
+      const builder: any = {};
+      for (const method of CHAIN_METHODS) {
+        builder[method] = (...args: any[]) => {
+          query.calls.push({ method, args });
+          return builder;
+        };
+      }
+      builder.then = (onFulfilled: any) => Promise.resolve(resolve(query)).then(onFulfilled);
+      return builder;
+    });
+    return { client: { from } as any, queries };
+  }
+
+  it("recomputes streak/sides-seen from view history and saves them, raising longest_streak if beaten", async () => {
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "user_story_views" && q.calls.some((c) => c.method === "gte")) {
+        return {
+          data: [
+            { story_id: "s1", outlet_id: "a", viewed_at: "2026-08-21T10:00:00Z" },
+            { story_id: "s1", outlet_id: "b", viewed_at: "2026-08-21T10:00:00Z" },
+          ],
+          error: null,
+        };
+      }
+      if (q.table === "profiles" && q.calls.some((c) => c.method === "maybeSingle")) {
+        return {
+          data: {
+            id: "user-1",
+            streak_count: 0,
+            longest_streak: 2,
+            sides_seen_total: 0,
+            notification_opt_in: false,
+            notification_hour: 9,
+          },
+          error: null,
+        };
+      }
+      if (q.table === "profiles" && q.calls.some((c) => c.method === "update")) {
+        return { data: null, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const computeFn = jest.fn().mockReturnValue(1);
+    const result = await recomputeAndSaveStreak(client, "user-1", computeFn);
+
+    // The two view rows share a story_id but have different outlet_ids, so
+    // they're 2 distinct (story, outlet) pairs per computeSidesSeenTotal
+    // (see lib/streak.ts / lib/streak.test.ts) — sidesSeenTotal is 2, not 1.
+    expect(result).toEqual({ streakCount: 1, sidesSeenTotal: 2 });
+    const updateQuery = queries.find(
+      (q) => q.table === "profiles" && q.calls.some((c) => c.method === "update")
+    )!;
+    const updateCall = updateQuery.calls.find((c) => c.method === "update")!;
+    expect(updateCall.args[0]).toEqual({ streak_count: 1, longest_streak: 2, sides_seen_total: 2 });
+  });
+
+  it("throws when fetching view history fails", async () => {
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "user_story_views") return { data: null, error: { message: "boom" } };
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+    await expect(recomputeAndSaveStreak(client, "user-1")).rejects.toThrow(
+      "Failed to fetch view history: boom"
     );
   });
 });

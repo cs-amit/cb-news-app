@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Story, ArticleWithOutlet, ConflictFlag } from "./types";
 import { OutletSummary, computeSilentOutlets } from "./silence";
+import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
 
 export async function fetchRecentStories(supabase: SupabaseClient): Promise<Story[]> {
   const { data, error } = await supabase
@@ -160,4 +161,74 @@ export async function fetchConflictFlags(
     .eq("story_id", storyId);
   if (error) throw new Error(`Failed to fetch conflict flags: ${error.message}`);
   return data ?? [];
+}
+
+export interface Profile {
+  id: string;
+  streak_count: number;
+  longest_streak: number;
+  sides_seen_total: number;
+  notification_opt_in: boolean;
+  notification_hour: number;
+}
+
+export async function fetchProfile(supabase: SupabaseClient, userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to fetch profile: ${error.message}`);
+  return data;
+}
+
+export async function recordArticleView(
+  supabase: SupabaseClient,
+  userId: string,
+  storyId: string,
+  outletId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("user_story_views")
+    .upsert(
+      { user_id: userId, story_id: storyId, outlet_id: outletId },
+      { onConflict: "user_id,story_id,outlet_id", ignoreDuplicates: true }
+    );
+  if (error) throw new Error(`Failed to record article view: ${error.message}`);
+}
+
+// A per-user window, not the global-table pagination Task 1 deals with — a
+// single reader's view history over 60 days stays small (dozens to low
+// hundreds of rows), so no ceiling/pagination is needed here.
+const VIEW_HISTORY_WINDOW_DAYS = 60;
+
+export async function recomputeAndSaveStreak(
+  supabase: SupabaseClient,
+  userId: string,
+  computeStreakFn: (rows: ViewRow[], now: Date) => number = computeStreak
+): Promise<{ streakCount: number; sidesSeenTotal: number }> {
+  const cutoff = new Date(
+    Date.now() - VIEW_HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("user_story_views")
+    .select("story_id, outlet_id, viewed_at")
+    .eq("user_id", userId)
+    .gte("viewed_at", cutoff);
+  if (error) throw new Error(`Failed to fetch view history: ${error.message}`);
+  const rows = (data ?? []) as ViewRow[];
+
+  const streakCount = computeStreakFn(rows, new Date());
+  const sidesSeenTotal = computeSidesSeenTotal(rows);
+
+  const profile = await fetchProfile(supabase, userId);
+  const longestStreak = Math.max(profile?.longest_streak ?? 0, streakCount);
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ streak_count: streakCount, longest_streak: longestStreak, sides_seen_total: sidesSeenTotal })
+    .eq("id", userId);
+  if (updateError) throw new Error(`Failed to save streak: ${updateError.message}`);
+
+  return { streakCount, sidesSeenTotal };
 }

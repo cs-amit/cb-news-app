@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, ActivityIndicator, Linking, Pressable, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
-import { fetchStoryWithArticles, fetchConflictFlags, fetchSilentOutlets } from "../../lib/queries";
+import { getUserId } from "../../lib/auth";
+import {
+  fetchStoryWithArticles,
+  fetchConflictFlags,
+  fetchSilentOutlets,
+  recordArticleView,
+  recomputeAndSaveStreak,
+} from "../../lib/queries";
 import { OutletSummary } from "../../lib/silence";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
@@ -21,6 +28,13 @@ export default function StoryScreen() {
   const [silentOutlets, setSilentOutlets] = useState<OutletSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getUserId(supabase)
+      .then(setUserId)
+      .catch((err) => console.error("Failed to resolve user id:", err));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -116,7 +130,17 @@ export default function StoryScreen() {
         return (
           <Pressable
             key={article.id}
-            onPress={() => Linking.openURL(article.url)}
+            onPress={() => {
+              Linking.openURL(article.url);
+              // Fire-and-forget: recording the view/streak must never block
+              // or interrupt actually opening the article, and a transient
+              // failure here shouldn't surface as an error to the reader.
+              if (userId && outlet) {
+                recordArticleView(supabase, userId, story!.id, outlet.id)
+                  .then(() => recomputeAndSaveStreak(supabase, userId))
+                  .catch((err) => console.error("Failed to record view/streak:", err));
+              }
+            }}
             style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: "#eee" }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
