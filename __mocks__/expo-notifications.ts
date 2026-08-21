@@ -7,7 +7,14 @@
 // pure nextTriggerDate function anyway — these exports are never invoked
 // by the current test suite, just present so the module resolves.
 export enum AndroidImportance {
-  DEFAULT = 3,
+  UNKNOWN = 0,
+  UNSPECIFIED = 1,
+  NONE = 2,
+  MIN = 3,
+  LOW = 4,
+  DEFAULT = 5,
+  HIGH = 6,
+  MAX = 7,
 }
 
 export enum SchedulableTriggerInputTypes {
