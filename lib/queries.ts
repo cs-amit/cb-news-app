@@ -84,6 +84,8 @@ export async function fetchSilentOutlets(
       .from("articles")
       .select("outlet_id")
       .gte("created_at", activeCutoff)
+      .order("created_at", { ascending: false })
+      .order("id")
       .range(offset, offset + ACTIVE_PAGE_SIZE - 1);
     if (activeError) throw new Error(`Failed to fetch active outlets: ${activeError.message}`);
 

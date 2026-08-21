@@ -103,6 +103,25 @@ describe("fetchSilentOutlets", () => {
     expect(queries[0].table).toBe("outlets");
   });
 
+  it("orders the active-outlet scan deterministically, matching the clusterStories/flagStoryConflicts tiebreaker pattern", async () => {
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "outlets") {
+        return { data: [{ id: "o1", name: "A", is_youtube: false }], error: null };
+      }
+      if (isActiveScan(q)) return { data: [{ outlet_id: "o1" }], error: null };
+      return { data: [], error: null };
+    });
+
+    await fetchSilentOutlets(client, "story-1", oldFirstSeen());
+
+    const scanQuery = queries.find((q) => q.table === "articles" && isActiveScan(q))!;
+    const orderCalls = scanQuery.calls.filter((c) => c.method === "order").map((c) => c.args);
+    expect(orderCalls).toEqual([
+      ["created_at", { ascending: false }],
+      ["id"],
+    ]);
+  });
+
   it("returns an empty array when no outlet has published recently", async () => {
     const { client } = makeMockSupabase((q) => {
       if (q.table === "outlets") {
