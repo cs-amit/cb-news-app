@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, ActivityIndicator, Linking, Pressable, View } from "react-native";
+import { ScrollView, Text, ActivityIndicator, Linking, Pressable, View, Share } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { getUserId } from "../../lib/auth";
@@ -12,6 +12,7 @@ import {
 } from "../../lib/queries";
 import { OutletSummary } from "../../lib/silence";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
+import { buildShareText } from "../../lib/shareCopy";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
 
 // Shared country baseline every outlet starts from (RSF World Press Freedom
@@ -76,6 +77,21 @@ export default function StoryScreen() {
     <ScrollView style={{ padding: 16 }}>
       <Text style={{ fontSize: 20, fontWeight: "700" }}>{story.canonical_headline}</Text>
       {story.summary ? <Text style={{ marginTop: 8, color: "#555" }}>{story.summary}</Text> : null}
+      <Pressable
+        onPress={() => {
+          const silentCount = silentOutlets.length;
+          Share.share({
+            message: buildShareText(
+              { headline: story.canonical_headline ?? "This story" },
+              articles.length,
+              silentCount
+            ),
+          }).catch((err) => console.error("Share failed:", err));
+        }}
+        style={{ marginTop: 12 }}
+      >
+        <Text style={{ color: "#0066cc", fontWeight: "600" }}>Share this story →</Text>
+      </Pressable>
       {framingSpectrum.length === 2 ? (
         <View style={{ marginTop: 24 }}>
           <Text style={{ fontWeight: "600" }}>Compare framing</Text>
