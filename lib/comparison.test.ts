@@ -1,4 +1,4 @@
-import { pickComparisonArticles } from "./comparison";
+import { pickComparisonArticles, pickFramingSpectrum } from "./comparison";
 import { ArticleWithOutlet, OutletInfo } from "./types";
 
 function makeOutlet(overrides: Partial<OutletInfo>): OutletInfo {
@@ -126,5 +126,67 @@ describe("pickComparisonArticles", () => {
     );
 
     expect(result).toEqual([valid]);
+  });
+});
+
+describe("pickFramingSpectrum", () => {
+  it("picks the two articles whose outlets have the widest govt-lean gap", () => {
+    const low = makeArticle({ outlet: makeOutlet({ id: "low", govt_lean_score: 10 }) });
+    const mid = makeArticle({ outlet: makeOutlet({ id: "mid", govt_lean_score: 50 }) });
+    const high = makeArticle({ outlet: makeOutlet({ id: "high", govt_lean_score: 90 }) });
+
+    const result = pickFramingSpectrum([mid, low, high]);
+
+    expect(result.map((a) => a.outlet!.id)).toEqual(["low", "high"]);
+  });
+
+  it("falls back to the first two distinct-outlet articles when fewer than 2 outlets have a score", () => {
+    const a = makeArticle({ outlet: makeOutlet({ id: "a", govt_lean_score: null }) });
+    const b = makeArticle({ outlet: makeOutlet({ id: "b", govt_lean_score: null }) });
+    const c = makeArticle({ outlet: makeOutlet({ id: "c", govt_lean_score: null }) });
+
+    const result = pickFramingSpectrum([a, b, c]);
+
+    expect(result.map((art) => art.outlet!.id)).toEqual(["a", "b"]);
+  });
+
+  it("uses one scored outlet plus the most-divergent-by-position unscored outlet when only one outlet has a score", () => {
+    const scored = makeArticle({ outlet: makeOutlet({ id: "scored", govt_lean_score: 70 }) });
+    const unscored = makeArticle({ outlet: makeOutlet({ id: "unscored", govt_lean_score: null }) });
+
+    const result = pickFramingSpectrum([scored, unscored]);
+
+    expect(result.map((art) => art.outlet!.id)).toEqual(["scored", "unscored"]);
+  });
+
+  it("returns an empty array when fewer than 2 distinct outlets cover the story", () => {
+    const only = makeArticle({ outlet: makeOutlet({ id: "only", govt_lean_score: 50 }) });
+    expect(pickFramingSpectrum([only])).toEqual([]);
+  });
+
+  it("skips articles with a null outlet", () => {
+    const a = makeArticle({ outlet: makeOutlet({ id: "a", govt_lean_score: 10 }) });
+    const nullOutletArticle: ArticleWithOutlet = {
+      id: "no-outlet",
+      title: "Orphan article",
+      url: "https://example.com/orphan",
+      published_at: null,
+      outlet: null,
+    };
+    const b = makeArticle({ outlet: makeOutlet({ id: "b", govt_lean_score: 90 }) });
+
+    const result = pickFramingSpectrum([a, nullOutletArticle, b]);
+
+    expect(result.map((art) => art.outlet!.id)).toEqual(["a", "b"]);
+  });
+
+  it("keeps only one article per outlet, preferring each outlet's first-listed article", () => {
+    const a1 = makeArticle({ id: "a1", outlet: makeOutlet({ id: "a", govt_lean_score: 10 }) });
+    const a2 = makeArticle({ id: "a2", outlet: makeOutlet({ id: "a", govt_lean_score: 10 }) });
+    const b = makeArticle({ id: "b", outlet: makeOutlet({ id: "b", govt_lean_score: 90 }) });
+
+    const result = pickFramingSpectrum([a1, a2, b]);
+
+    expect(result.map((art) => art.id)).toEqual(["a1", "b"]);
   });
 });

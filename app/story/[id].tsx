@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { fetchStoryWithArticles, fetchConflictFlags, fetchSilentOutlets } from "../../lib/queries";
 import { OutletSummary } from "../../lib/silence";
-import { pickComparisonArticles } from "../../lib/comparison";
+import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
 
 // Shared country baseline every outlet starts from (RSF World Press Freedom
@@ -56,10 +56,30 @@ export default function StoryScreen() {
 
   const flagsByOutlet = new Map(conflictFlags.map((f) => [f.outlet_id, f]));
 
+  const framingSpectrum = pickFramingSpectrum(articles);
+
   return (
     <ScrollView style={{ padding: 16 }}>
       <Text style={{ fontSize: 20, fontWeight: "700" }}>{story.canonical_headline}</Text>
       {story.summary ? <Text style={{ marginTop: 8, color: "#555" }}>{story.summary}</Text> : null}
+      {framingSpectrum.length === 2 ? (
+        <View style={{ marginTop: 24 }}>
+          <Text style={{ fontWeight: "600" }}>Compare framing</Text>
+          <Text style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
+            How the two most differently-scored outlets covering this story headlined it:
+          </Text>
+          {framingSpectrum.map((article) => (
+            <Pressable
+              key={article.id}
+              onPress={() => Linking.openURL(article.url)}
+              style={{ marginTop: 8 }}
+            >
+              <Text style={{ fontWeight: "500" }}>{article.outlet?.name}</Text>
+              <Text style={{ color: "#333" }}>{article.title}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       <Text style={{ marginTop: 24, fontWeight: "600" }}>Sources ({articles.length})</Text>
       {articles.map((article) => {
         const outlet = article.outlet;
