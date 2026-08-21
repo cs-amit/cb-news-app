@@ -14,6 +14,8 @@ import {
 import { buildDailyDigestCopy } from "../lib/notificationCopy";
 
 const NOTIFICATION_PROMPT_DISMISSED_KEY = "notificationPromptDismissed";
+const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
+const UPGRADE_PROMPT_DISMISSED_KEY = "upgradePromptDismissed";
 
 export default function FeedScreen() {
   const [stories, setStories] = useState<Story[]>([]);
@@ -22,6 +24,7 @@ export default function FeedScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -46,6 +49,11 @@ export default function FeedScreen() {
         } else if (p && p.streak_count >= 1) {
           const dismissed = await AsyncStorage.getItem(NOTIFICATION_PROMPT_DISMISSED_KEY);
           if (!dismissed) setShowNotificationPrompt(true);
+        }
+
+        if (p && p.streak_count >= UPGRADE_PROMPT_STREAK_MILESTONE) {
+          const dismissed = await AsyncStorage.getItem(UPGRADE_PROMPT_DISMISSED_KEY);
+          if (!dismissed) setShowUpgradePrompt(true);
         }
       })
       // Streak display is a nice-to-have on top of the core feed — a
@@ -94,6 +102,11 @@ export default function FeedScreen() {
     await AsyncStorage.setItem(NOTIFICATION_PROMPT_DISMISSED_KEY, "true");
   }
 
+  async function handleDismissUpgradePrompt() {
+    setShowUpgradePrompt(false);
+    await AsyncStorage.setItem(UPGRADE_PROMPT_DISMISSED_KEY, "true");
+  }
+
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
   if (error) return <Text style={{ padding: 16 }}>Couldn't load stories: {error}</Text>;
 
@@ -103,6 +116,22 @@ export default function FeedScreen() {
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View>
+          {showUpgradePrompt ? (
+            <View style={{ padding: 16, backgroundColor: "#f5f5f5" }}>
+              <Text>
+                Nice, a {profile?.streak_count}-day streak! Save your progress so it's not lost if
+                you reinstall.
+              </Text>
+              <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
+                <Pressable onPress={() => router.push("/upgrade")}>
+                  <Text style={{ color: "#0066cc", fontWeight: "600" }}>Add email</Text>
+                </Pressable>
+                <Pressable onPress={handleDismissUpgradePrompt}>
+                  <Text style={{ color: "#777" }}>Maybe later</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
           {showNotificationPrompt ? (
             <View style={{ padding: 16, backgroundColor: "#f5f5f5" }}>
               <Text>
