@@ -19,8 +19,10 @@ export enum AndroidImportance {
 
 export enum SchedulableTriggerInputTypes {
   DATE = "date",
+  DAILY = "daily",
 }
 
+export const setNotificationHandler = jest.fn();
 export const setNotificationChannelAsync = jest.fn();
 export const requestPermissionsAsync = jest.fn(async () => ({ status: "granted" }));
 export const cancelAllScheduledNotificationsAsync = jest.fn();
