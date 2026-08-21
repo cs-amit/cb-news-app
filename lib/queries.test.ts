@@ -1,5 +1,5 @@
 import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
-import { fetchConflictFlags } from "./queries";
+import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
@@ -268,6 +268,37 @@ describe("fetchConflictFlags", () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchConflictFlags(client, "story-1")).rejects.toThrow(
       "Failed to fetch conflict flags: boom"
+    );
+  });
+});
+
+describe("fetchFactChecks", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const eq = jest.fn().mockResolvedValue(result);
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from };
+  }
+
+  it("returns the story's fact-checks", async () => {
+    const factChecks = [
+      { source_org: "Alt News", claim: "Viral claim about vaccine", verdict: "False", url: "https://altnews.in/x" },
+    ];
+    const { client, from } = makeMockSupabase({ data: factChecks, error: null });
+    const result = await fetchFactChecks(client, "story-1");
+    expect(from).toHaveBeenCalledWith("fact_checks");
+    expect(result).toEqual(factChecks);
+  });
+
+  it("returns an empty array when data is null", async () => {
+    const { client } = makeMockSupabase({ data: null, error: null });
+    expect(await fetchFactChecks(client, "story-1")).toEqual([]);
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchFactChecks(client, "story-1")).rejects.toThrow(
+      "Failed to fetch fact-checks: boom"
     );
   });
 });

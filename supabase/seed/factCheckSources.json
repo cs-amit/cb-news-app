@@ -1,0 +1,5 @@
+[
+  { "name": "Alt News", "rss_url": "https://www.altnews.in/feed/" },
+  { "name": "BOOM", "rss_url": "https://www.boomlive.in/feed" },
+  { "name": "Factly", "rss_url": "https://factly.in/feed/" }
+]

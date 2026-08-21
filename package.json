@@ -41,6 +41,7 @@
     "ingest": "tsx scripts/ingest/run.ts",
     "cluster": "tsx scripts/cluster/run.ts",
     "score": "tsx scripts/scoring/run.ts",
+    "factcheck": "tsx scripts/factcheck/run.ts",
     "test": "cross-env TZ=UTC jest"
   },
   "private": true

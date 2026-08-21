@@ -163,6 +163,22 @@ export async function fetchConflictFlags(
   return data ?? [];
 }
 
+export interface FactCheck {
+  source_org: string;
+  claim: string;
+  verdict: string;
+  url: string;
+}
+
+export async function fetchFactChecks(supabase: SupabaseClient, storyId: string): Promise<FactCheck[]> {
+  const { data, error } = await supabase
+    .from("fact_checks")
+    .select("source_org, claim, verdict, url")
+    .eq("matched_story_id", storyId);
+  if (error) throw new Error(`Failed to fetch fact-checks: ${error.message}`);
+  return data ?? [];
+}
+
 export interface Profile {
   id: string;
   streak_count: number;

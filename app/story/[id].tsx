@@ -7,8 +7,10 @@ import {
   fetchStoryWithArticles,
   fetchConflictFlags,
   fetchSilentOutlets,
+  fetchFactChecks,
   recordArticleView,
   recomputeAndSaveStreak,
+  FactCheck,
 } from "../../lib/queries";
 import { OutletSummary } from "../../lib/silence";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
@@ -27,6 +29,7 @@ export default function StoryScreen() {
   const [articles, setArticles] = useState<ArticleWithOutlet[]>([]);
   const [conflictFlags, setConflictFlags] = useState<ConflictFlag[]>([]);
   const [silentOutlets, setSilentOutlets] = useState<OutletSummary[]>([]);
+  const [factChecks, setFactChecks] = useState<FactCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -49,12 +52,14 @@ export default function StoryScreen() {
         // loaded story and show a full error screen. Fail soft: log and
         // leave conflictFlags/silentOutlets at their empty-array default.
         try {
-          const [flags, silent] = await Promise.all([
+          const [flags, silent, checks] = await Promise.all([
             fetchConflictFlags(supabase, id),
             fetchSilentOutlets(supabase, id, story.first_seen_at),
+            fetchFactChecks(supabase, id),
           ]);
           setConflictFlags(flags);
           setSilentOutlets(silent);
+          setFactChecks(checks);
         } catch (err) {
           console.error(
             "Failed to load story badges:",
@@ -229,6 +234,23 @@ export default function StoryScreen() {
         <View style={{ marginTop: 24 }}>
           <Text style={{ fontWeight: "600" }}>Not yet covered by</Text>
           <Text style={{ marginTop: 4, color: "#555" }}>{silentOutlets.map((o) => o.name).join(", ")}</Text>
+        </View>
+      ) : null}
+      {factChecks.length > 0 ? (
+        <View style={{ marginTop: 24 }}>
+          <Text style={{ fontWeight: "600" }}>Fact-checked</Text>
+          {factChecks.map((factCheck, index) => (
+            <Pressable
+              key={`${factCheck.url}-${index}`}
+              onPress={() => Linking.openURL(factCheck.url)}
+              style={{ marginTop: 8 }}
+            >
+              <Text style={{ fontWeight: "500" }}>
+                {factCheck.source_org}: {factCheck.verdict}
+              </Text>
+              <Text style={{ fontSize: 12, color: "#777" }}>{factCheck.claim}</Text>
+            </Pressable>
+          ))}
         </View>
       ) : null}
     </ScrollView>

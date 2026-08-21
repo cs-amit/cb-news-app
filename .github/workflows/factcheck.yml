@@ -1,0 +1,25 @@
+name: Ingest and match fact-checks
+
+on:
+  schedule:
+    # Once daily, at hour 5 — an odd hour so it never lands on one of
+    # ingest.yml's 2-hourly runs (0,2,4,...,22), and distinct from
+    # score.yml's "0 3 * * *", so this doesn't compete with either for the
+    # same day's shared Gemini quota window.
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  factcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run factcheck
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
