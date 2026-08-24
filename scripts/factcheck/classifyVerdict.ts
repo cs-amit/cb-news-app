@@ -14,7 +14,7 @@
 // Prefer under-classifying (Unverified) to a wrong confident verdict
 // either way (spec's own fact-checking framing, matching this file's
 // existing fallback for ambiguous titles).
-const NEGATED_POSITIVE_VERDICT = /\b(not|isn'?t|never|no,?)\s+(\w+\s+){0,2}(true|confirmed|correct|verified)\b/;
+const NEGATED_POSITIVE_VERDICT = /\b(not|isn['’]?t|never|no,?)\s+(\w+\s+){0,2}(true|confirmed|correct|verified)\b/;
 
 export function classifyVerdict(title: string): "False" | "Misleading" | "True" | "Unverified" {
   const lower = title.toLowerCase();
