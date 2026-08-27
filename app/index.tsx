@@ -10,6 +10,8 @@ import {
   fetchStoryWithArticles,
   fetchSilentOutlets,
   recomputeAndSaveStreak,
+  addStoryToList,
+  fetchUserLists,
   Profile,
 } from "../lib/queries";
 import { Story } from "../lib/types";
@@ -32,6 +34,8 @@ export default function FeedScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [ownHandle, setOwnHandle] = useState<string | null>(null);
+  const [repostsListId, setRepostsListId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -54,6 +58,13 @@ export default function FeedScreen() {
         await recomputeAndSaveStreak(supabase, id);
         const p = await fetchProfile(supabase, id);
         setProfile(p);
+
+        if (p?.handle) {
+          setOwnHandle(p.handle);
+          const lists = await fetchUserLists(supabase, id);
+          const reposts = lists.find((l) => l.is_default);
+          if (reposts) setRepostsListId(reposts.id);
+        }
 
         if (p?.notification_opt_in) {
           // Already opted in: keep the notification's content fresh every
@@ -127,6 +138,15 @@ export default function FeedScreen() {
     await AsyncStorage.setItem(UPGRADE_PROMPT_DISMISSED_KEY, "true");
   }
 
+  async function handleRepost(storyId: string) {
+    if (!repostsListId) return;
+    try {
+      await addStoryToList(supabase, repostsListId, storyId);
+    } catch (err) {
+      console.error("Failed to repost story:", err);
+    }
+  }
+
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
   if (error) return <Text style={{ padding: 16 }}>Couldn't load stories: {error}</Text>;
 
@@ -175,6 +195,11 @@ export default function FeedScreen() {
           <Pressable onPress={() => router.push("/methodology")} style={{ padding: 16 }}>
             <Text style={{ color: "#0066cc" }}>How are these badges calculated? Methodology →</Text>
           </Pressable>
+          {ownHandle ? (
+            <Pressable onPress={() => router.push(`/profile/${ownHandle}`)} style={{ padding: 16, paddingTop: 0 }}>
+              <Text style={{ color: "#0066cc" }}>My profile →</Text>
+            </Pressable>
+          ) : null}
         </View>
       }
       renderItem={({ item }) => (
@@ -186,6 +211,17 @@ export default function FeedScreen() {
             {item.canonical_headline ?? "Untitled story"}
           </Text>
           {item.summary ? <Text style={{ marginTop: 4, color: "#555" }}>{item.summary}</Text> : null}
+          {repostsListId ? (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation();
+                handleRepost(item.id);
+              }}
+              style={{ marginTop: 6 }}
+            >
+              <Text style={{ fontSize: 12, color: "#0066cc" }}>Repost to my profile</Text>
+            </Pressable>
+          ) : null}
         </Pressable>
       )}
       ListEmptyComponent={
