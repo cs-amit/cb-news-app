@@ -2,15 +2,25 @@ import { useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
+import { getUserId } from "../lib/auth";
+import { isValidHandle } from "../lib/handle";
+import { claimHandle, createDefaultRepostsList } from "../lib/queries";
 
 export default function UpgradeScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [handle, setHandle] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit() {
     if (!email.trim()) return;
+    const trimmedHandle = handle.trim().toLowerCase();
+    if (!isValidHandle(trimmedHandle)) {
+      setErrorMessage("Handle must be 3-20 characters: lowercase letters, digits, or underscore.");
+      setStatus("error");
+      return;
+    }
     setStatus("submitting");
     // Supabase's documented anonymous-user linking flow: calling
     // updateUser({ email }) while signed in anonymously sends a
@@ -23,6 +33,16 @@ export default function UpgradeScreen() {
       setStatus("error");
       return;
     }
+    try {
+      const userId = await getUserId(supabase);
+      await claimHandle(supabase, userId, trimmedHandle);
+      await createDefaultRepostsList(supabase, userId);
+    } catch (err) {
+      // The email confirmation already sent successfully — a handle/list
+      // hiccup here must not block the user from finishing email
+      // confirmation. They can pick a handle again from their profile.
+      console.error("Failed to claim handle after upgrade:", err);
+    }
     setStatus("sent");
   }
 
@@ -31,8 +51,8 @@ export default function UpgradeScreen() {
       <View style={{ padding: 16 }}>
         <Text style={{ fontSize: 16, fontWeight: "600" }}>Check your email</Text>
         <Text style={{ marginTop: 8, color: "#555" }}>
-          Tap the confirmation link we sent to {email.trim()}, then reopen Sourced. Your streak
-          and reading history carry over exactly as they are.
+          Tap the confirmation link we sent to {email.trim()}, then reopen Sourced. Your streak,
+          reading history, and new handle carry over exactly as they are.
         </Text>
       </View>
     );
@@ -42,8 +62,8 @@ export default function UpgradeScreen() {
     <View style={{ padding: 16 }}>
       <Text style={{ fontSize: 16, fontWeight: "600" }}>Save your progress</Text>
       <Text style={{ marginTop: 8, color: "#555" }}>
-        Add an email so your streak and reading history aren't lost if you reinstall. Nothing
-        else changes — no password needed right now.
+        Add an email so your streak and reading history aren't lost if you reinstall, and pick a
+        handle so you can share lists and your profile publicly.
       </Text>
       <TextInput
         value={email}
@@ -52,6 +72,13 @@ export default function UpgradeScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         style={{ marginTop: 16, borderWidth: 1, borderColor: "#ccc", borderRadius: 4, padding: 12 }}
+      />
+      <TextInput
+        value={handle}
+        onChangeText={setHandle}
+        placeholder="handle (lowercase, 3-20 chars)"
+        autoCapitalize="none"
+        style={{ marginTop: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 4, padding: 12 }}
       />
       {status === "error" ? (
         <Text style={{ marginTop: 8, color: "#a00" }}>Couldn't save that: {errorMessage}</Text>
