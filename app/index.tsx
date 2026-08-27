@@ -61,9 +61,13 @@ export default function FeedScreen() {
 
         if (p?.handle) {
           setOwnHandle(p.handle);
-          const lists = await fetchUserLists(supabase, id);
-          const reposts = lists.find((l) => l.is_default);
-          if (reposts) setRepostsListId(reposts.id);
+          try {
+            const lists = await fetchUserLists(supabase, id);
+            const reposts = lists.find((l) => l.is_default);
+            if (reposts) setRepostsListId(reposts.id);
+          } catch (err) {
+            console.error("Failed to load reposts list:", err);
+          }
         }
 
         if (p?.notification_opt_in) {
