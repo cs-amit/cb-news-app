@@ -85,6 +85,14 @@ export default function MethodologyScreen() {
         endorsement or condemnation of any channel.
       </Text>
 
+      <Text style={{ fontSize: 16, fontWeight: "600", marginTop: 20 }}>Political compass</Text>
+      <Text style={{ marginTop: 4, color: "#333" }}>
+        Your compass position (from the quiz on your profile) never changes which stories or
+        outlets you're shown. It's a badge you can choose to share, not a filter — this app
+        doesn't personalize your feed based on it. It also only moves in small steps over time,
+        driven by your own outlet-poll answers, never by which articles you happen to read.
+      </Text>
+
       {loading ? <ActivityIndicator style={{ marginTop: 20 }} /> : null}
     </ScrollView>
   );
