@@ -2,6 +2,7 @@ import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from ".
 import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
+import { claimHandle, setCompassPosition, fetchPublicProfile } from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
@@ -346,6 +347,7 @@ describe("fetchProfile", () => {
       sides_seen_total: 12,
       notification_opt_in: true,
       notification_hour: 9,
+      handle: null,
     };
     const { client, from, eq } = makeMockSupabase({ data: profile, error: null });
     const result = await fetchProfile(client, "user-1");
@@ -550,5 +552,62 @@ describe("fetchPollTallies", () => {
     await expect(fetchPollTallies(client, "story-1")).rejects.toThrow(
       "Failed to fetch poll tallies: boom"
     );
+  });
+});
+
+function makeUpdateMock(result: { data: any; error: any }) {
+  const eq = jest.fn().mockResolvedValue(result);
+  const update = jest.fn().mockReturnValue({ eq });
+  const from = jest.fn().mockReturnValue({ update });
+  return { client: { from } as any, from, update, eq };
+}
+
+describe("claimHandle", () => {
+  it("updates the profile's handle", async () => {
+    const { client, from, update, eq } = makeUpdateMock({ data: null, error: null });
+    await claimHandle(client, "user-1", "amit_57");
+    expect(from).toHaveBeenCalledWith("profiles");
+    expect(update).toHaveBeenCalledWith({ handle: "amit_57" });
+    expect(eq).toHaveBeenCalledWith("id", "user-1");
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeUpdateMock({ data: null, error: { message: "duplicate" } });
+    await expect(claimHandle(client, "user-1", "amit_57")).rejects.toThrow(
+      "Failed to claim handle: duplicate"
+    );
+  });
+});
+
+describe("setCompassPosition", () => {
+  it("updates the profile's compass position and taken-at timestamp", async () => {
+    const { client, update } = makeUpdateMock({ data: null, error: null });
+    await setCompassPosition(client, "user-1", 42);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ compass_position: 42 })
+    );
+  });
+});
+
+describe("fetchPublicProfile", () => {
+  function makeSelectMock(result: { data: any; error: any }) {
+    const maybeSingle = jest.fn().mockResolvedValue(result);
+    const eq = jest.fn().mockReturnValue({ maybeSingle });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from, select, eq };
+  }
+
+  it("returns the profile when found", async () => {
+    const profile = { id: "user-1", handle: "amit_57", compass_position: 10 };
+    const { client, from } = makeSelectMock({ data: profile, error: null });
+    const result = await fetchPublicProfile(client, "amit_57");
+    expect(from).toHaveBeenCalledWith("public_profiles");
+    expect(result).toEqual(profile);
+  });
+
+  it("returns null when no profile has that handle", async () => {
+    const { client } = makeSelectMock({ data: null, error: null });
+    expect(await fetchPublicProfile(client, "nobody")).toBeNull();
   });
 });

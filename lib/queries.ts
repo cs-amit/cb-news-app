@@ -187,13 +187,52 @@ export interface Profile {
   sides_seen_total: number;
   notification_opt_in: boolean;
   notification_hour: number;
+  handle: string | null;
 }
 
 export async function fetchProfile(supabase: SupabaseClient, userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour")
+    .select(
+      "id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour, handle"
+    )
     .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to fetch profile: ${error.message}`);
+  return data;
+}
+
+export async function claimHandle(supabase: SupabaseClient, userId: string, handle: string): Promise<void> {
+  const { error } = await supabase.from("profiles").update({ handle }).eq("id", userId);
+  if (error) throw new Error(`Failed to claim handle: ${error.message}`);
+}
+
+export async function setCompassPosition(
+  supabase: SupabaseClient,
+  userId: string,
+  position: number
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ compass_position: position, compass_quiz_taken_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) throw new Error(`Failed to save compass position: ${error.message}`);
+}
+
+export interface PublicProfile {
+  id: string;
+  handle: string;
+  compass_position: number | null;
+}
+
+export async function fetchPublicProfile(
+  supabase: SupabaseClient,
+  handle: string
+): Promise<PublicProfile | null> {
+  const { data, error } = await supabase
+    .from("public_profiles")
+    .select("id, handle, compass_position")
+    .eq("handle", handle)
     .maybeSingle();
   if (error) throw new Error(`Failed to fetch profile: ${error.message}`);
   return data;
