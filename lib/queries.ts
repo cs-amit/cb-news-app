@@ -362,3 +362,116 @@ export async function fetchPollTallies(
   }
   return tallies;
 }
+
+export interface ListRow {
+  id: string;
+  owner_id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface ListItemRow {
+  id: string;
+  list_id: string;
+  story_id: string;
+  position: number;
+  added_at: string;
+  story?: Story;
+}
+
+export async function createDefaultRepostsList(supabase: SupabaseClient, userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("lists")
+    .insert({ owner_id: userId, name: "Reposts", is_public: true, is_default: true })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`Failed to create default list: ${error?.message}`);
+  return data.id;
+}
+
+export async function createList(
+  supabase: SupabaseClient,
+  userId: string,
+  name: string,
+  description: string | null
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("lists")
+    .insert({ owner_id: userId, name, description, is_public: false, is_default: false })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`Failed to create list: ${error?.message}`);
+  return data.id;
+}
+
+export async function fetchUserLists(supabase: SupabaseClient, userId: string): Promise<ListRow[]> {
+  const { data, error } = await supabase
+    .from("lists")
+    .select("*")
+    .eq("owner_id", userId)
+    .order("created_at");
+  if (error) throw new Error(`Failed to fetch lists: ${error.message}`);
+  return data ?? [];
+}
+
+export async function fetchPublicLists(supabase: SupabaseClient, ownerId: string): Promise<ListRow[]> {
+  const { data, error } = await supabase
+    .from("lists")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .eq("is_public", true)
+    .order("created_at");
+  if (error) throw new Error(`Failed to fetch public lists: ${error.message}`);
+  return data ?? [];
+}
+
+export async function fetchListItems(supabase: SupabaseClient, listId: string): Promise<ListItemRow[]> {
+  const { data, error } = await supabase
+    .from("list_items")
+    .select("id, list_id, story_id, position, added_at, story:stories(id, canonical_headline, summary, first_seen_at)")
+    .eq("list_id", listId)
+    .order("position");
+  if (error) throw new Error(`Failed to fetch list items: ${error.message}`);
+  return (data ?? []) as unknown as ListItemRow[];
+}
+
+export async function addStoryToList(supabase: SupabaseClient, listId: string, storyId: string): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase
+    .from("list_items")
+    .select("position")
+    .eq("list_id", listId)
+    .order("position", { ascending: false })
+    .limit(1);
+  if (fetchError) throw new Error(`Failed to check list items: ${fetchError.message}`);
+  const nextPosition = existing && existing.length > 0 ? existing[0].position + 1 : 0;
+  const { error } = await supabase
+    .from("list_items")
+    .upsert(
+      { list_id: listId, story_id: storyId, position: nextPosition },
+      { onConflict: "list_id,story_id", ignoreDuplicates: true }
+    );
+  if (error) throw new Error(`Failed to add story to list: ${error.message}`);
+}
+
+export async function removeStoryFromList(supabase: SupabaseClient, listId: string, storyId: string): Promise<void> {
+  const { error } = await supabase.from("list_items").delete().eq("list_id", listId).eq("story_id", storyId);
+  if (error) throw new Error(`Failed to remove story from list: ${error.message}`);
+}
+
+export async function toggleListPublic(supabase: SupabaseClient, listId: string, isPublic: boolean): Promise<void> {
+  const { error } = await supabase.from("lists").update({ is_public: isPublic }).eq("id", listId);
+  if (error) throw new Error(`Failed to update list visibility: ${error.message}`);
+}
+
+export async function reorderListItems(
+  supabase: SupabaseClient,
+  updates: { id: string; position: number }[]
+): Promise<void> {
+  for (const update of updates) {
+    const { error } = await supabase.from("list_items").update({ position: update.position }).eq("id", update.id);
+    if (error) throw new Error(`Failed to reorder list item ${update.id}: ${error.message}`);
+  }
+}

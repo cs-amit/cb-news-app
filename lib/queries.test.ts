@@ -3,6 +3,17 @@ import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
 import { claimHandle, setCompassPosition, fetchPublicProfile } from "./queries";
+import {
+  createDefaultRepostsList,
+  createList,
+  fetchUserLists,
+  fetchPublicLists,
+  fetchListItems,
+  addStoryToList,
+  removeStoryFromList,
+  toggleListPublic,
+  reorderListItems,
+} from "./queries";
 
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
@@ -609,5 +620,170 @@ describe("fetchPublicProfile", () => {
   it("returns null when no profile has that handle", async () => {
     const { client } = makeSelectMock({ data: null, error: null });
     expect(await fetchPublicProfile(client, "nobody")).toBeNull();
+  });
+});
+
+describe("createDefaultRepostsList", () => {
+  it("inserts a public, default-flagged list named Reposts", async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: "list-1" }, error: null });
+    const select = jest.fn().mockReturnValue({ single });
+    const insert = jest.fn().mockReturnValue({ select });
+    const from = jest.fn().mockReturnValue({ insert });
+    const client = { from } as any;
+
+    const id = await createDefaultRepostsList(client, "user-1");
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ owner_id: "user-1", name: "Reposts", is_public: true, is_default: true })
+    );
+    expect(id).toBe("list-1");
+  });
+});
+
+describe("createList", () => {
+  it("inserts a private, non-default list", async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: "list-2" }, error: null });
+    const select = jest.fn().mockReturnValue({ single });
+    const insert = jest.fn().mockReturnValue({ select });
+    const from = jest.fn().mockReturnValue({ insert });
+    const client = { from } as any;
+
+    const id = await createList(client, "user-1", "Stories that changed my mind", null);
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner_id: "user-1",
+        name: "Stories that changed my mind",
+        is_public: false,
+        is_default: false,
+      })
+    );
+    expect(id).toBe("list-2");
+  });
+});
+
+describe("fetchUserLists / fetchPublicLists", () => {
+  function makeListsMock(result: { data: any; error: any }) {
+    const order = jest.fn().mockResolvedValue(result);
+    const eqPublic = jest.fn().mockReturnValue({ order });
+    const eqOwner = jest.fn().mockReturnValue({ order, eq: eqPublic });
+    const select = jest.fn().mockReturnValue({ eq: eqOwner });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from, select, eqOwner, eqPublic, order };
+  }
+
+  it("fetchUserLists filters by owner only", async () => {
+    const lists = [{ id: "l1" }];
+    const { client, eqOwner } = makeListsMock({ data: lists, error: null });
+    const result = await fetchUserLists(client, "user-1");
+    expect(eqOwner).toHaveBeenCalledWith("owner_id", "user-1");
+    expect(result).toEqual(lists);
+  });
+
+  it("fetchPublicLists filters by owner and is_public", async () => {
+    const lists = [{ id: "l1", is_public: true }];
+    const { client, eqOwner, eqPublic } = makeListsMock({ data: lists, error: null });
+    const result = await fetchPublicLists(client, "user-1");
+    expect(eqOwner).toHaveBeenCalledWith("owner_id", "user-1");
+    expect(eqPublic).toHaveBeenCalledWith("is_public", true);
+    expect(result).toEqual(lists);
+  });
+});
+
+describe("fetchListItems", () => {
+  it("returns items ordered by position", async () => {
+    const items = [{ id: "i1", position: 0 }];
+    const order = jest.fn().mockResolvedValue({ data: items, error: null });
+    const eq = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    const client = { from } as any;
+
+    const result = await fetchListItems(client, "list-1");
+    expect(eq).toHaveBeenCalledWith("list_id", "list-1");
+    expect(order).toHaveBeenCalledWith("position");
+    expect(result).toEqual(items);
+  });
+});
+
+describe("addStoryToList", () => {
+  it("computes the next position from the current max and upserts", async () => {
+    const limit = jest.fn().mockResolvedValue({ data: [{ position: 2 }], error: null });
+    const order = jest.fn().mockReturnValue({ limit });
+    const eqSelect = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq: eqSelect });
+    const upsert = jest.fn().mockResolvedValue({ data: null, error: null });
+    const from = jest.fn().mockReturnValue({ select, upsert });
+    const client = { from } as any;
+
+    await addStoryToList(client, "list-1", "story-1");
+
+    expect(upsert).toHaveBeenCalledWith(
+      { list_id: "list-1", story_id: "story-1", position: 3 },
+      { onConflict: "list_id,story_id", ignoreDuplicates: true }
+    );
+  });
+
+  it("starts at position 0 for an empty list", async () => {
+    const limit = jest.fn().mockResolvedValue({ data: [], error: null });
+    const order = jest.fn().mockReturnValue({ limit });
+    const eqSelect = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq: eqSelect });
+    const upsert = jest.fn().mockResolvedValue({ data: null, error: null });
+    const from = jest.fn().mockReturnValue({ select, upsert });
+    const client = { from } as any;
+
+    await addStoryToList(client, "list-1", "story-1");
+
+    expect(upsert).toHaveBeenCalledWith(
+      { list_id: "list-1", story_id: "story-1", position: 0 },
+      { onConflict: "list_id,story_id", ignoreDuplicates: true }
+    );
+  });
+});
+
+describe("removeStoryFromList", () => {
+  it("deletes the matching list_items row", async () => {
+    const eqStory = jest.fn().mockResolvedValue({ data: null, error: null });
+    const eqList = jest.fn().mockReturnValue({ eq: eqStory });
+    const del = jest.fn().mockReturnValue({ eq: eqList });
+    const from = jest.fn().mockReturnValue({ delete: del });
+    const client = { from } as any;
+
+    await removeStoryFromList(client, "list-1", "story-1");
+    expect(eqList).toHaveBeenCalledWith("list_id", "list-1");
+    expect(eqStory).toHaveBeenCalledWith("story_id", "story-1");
+  });
+});
+
+describe("toggleListPublic", () => {
+  it("updates is_public on the given list", async () => {
+    const eq = jest.fn().mockResolvedValue({ data: null, error: null });
+    const update = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ update });
+    const client = { from } as any;
+
+    await toggleListPublic(client, "list-1", true);
+    expect(update).toHaveBeenCalledWith({ is_public: true });
+    expect(eq).toHaveBeenCalledWith("id", "list-1");
+  });
+});
+
+describe("reorderListItems", () => {
+  it("applies one position update per item", async () => {
+    const eq = jest.fn().mockResolvedValue({ data: null, error: null });
+    const update = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ update });
+    const client = { from } as any;
+
+    await reorderListItems(client, [
+      { id: "i1", position: 0 },
+      { id: "i2", position: 1 },
+    ]);
+
+    expect(update).toHaveBeenCalledWith({ position: 0 });
+    expect(update).toHaveBeenCalledWith({ position: 1 });
+    expect(eq).toHaveBeenCalledWith("id", "i1");
+    expect(eq).toHaveBeenCalledWith("id", "i2");
   });
 });
