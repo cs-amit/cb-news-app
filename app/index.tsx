@@ -199,6 +199,13 @@ export default function FeedScreen() {
           <Pressable onPress={() => router.push("/methodology")} style={{ padding: 16 }}>
             <Text style={{ color: "#0066cc" }}>How are these badges calculated? Methodology →</Text>
           </Pressable>
+          <Pressable onPress={() => router.push("/quiz")} style={{ padding: 16, paddingTop: 0 }}>
+            <Text style={{ color: "#0066cc" }}>
+              {profile?.compass_quiz_taken_at
+                ? "Your compass position →"
+                : "Where do you stand? Take the compass quiz →"}
+            </Text>
+          </Pressable>
           {ownHandle ? (
             <Pressable onPress={() => router.push(`/profile/${ownHandle}`)} style={{ padding: 16, paddingTop: 0 }}>
               <Text style={{ color: "#0066cc" }}>My profile →</Text>

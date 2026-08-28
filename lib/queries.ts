@@ -188,13 +188,14 @@ export interface Profile {
   notification_opt_in: boolean;
   notification_hour: number;
   handle: string | null;
+  compass_quiz_taken_at: string | null;
 }
 
 export async function fetchProfile(supabase: SupabaseClient, userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour, handle"
+      "id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour, handle, compass_quiz_taken_at"
     )
     .eq("id", userId)
     .maybeSingle();
