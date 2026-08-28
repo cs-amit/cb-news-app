@@ -1,7 +1,7 @@
 alter table profiles
   add column handle text unique,
   add column compass_position numeric,
-  add column compass_public boolean not null default true,
+  add column compass_public boolean not null default false,
   add column compass_quiz_taken_at timestamptz;
 
 alter table profiles
@@ -30,6 +30,9 @@ create table list_items (
   unique (list_id, story_id)
 );
 
+create index lists_owner_id_idx on lists (owner_id);
+create index list_items_list_id_position_idx on list_items (list_id, position);
+
 alter table lists enable row level security;
 alter table list_items enable row level security;
 
@@ -57,6 +60,17 @@ create policy "public read items of public lists" on list_items
 -- whenever the owner has toggled compass_public off, even though the
 -- underlying row still has a real value — the badge stays hidden without
 -- deleting the user's own data.
+--
+-- IMPORTANT: this view MUST stay a default (non-security_invoker) view.
+-- Supabase's built-in database linter will likely flag it with a
+-- "security definer view" warning, but flipping `security_invoker = true`
+-- in response would break it: the view's entire purpose is to let ANY
+-- caller look up ANY user's public profile by handle, bypassing RLS on the
+-- underlying profiles table (which is owner-only). security_invoker = true
+-- would make the view respect the CALLER's own RLS instead, so a caller
+-- could only ever see their own row through it — breaking "look up any
+-- handle" for everyone else. Leave the linter warning unaddressed here; it
+-- is a false positive for this view's purpose, same as outlet_poll_tallies.
 create view public_profiles as
   select
     id,
