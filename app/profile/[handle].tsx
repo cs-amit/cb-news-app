@@ -71,11 +71,14 @@ export default function ProfileScreen() {
         data={lists}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}>
+          <Pressable
+            onPress={() => router.push(`/list/${item.id}`)}
+            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}
+          >
             <Text style={{ fontWeight: "500" }}>{item.name}</Text>
             {item.description ? <Text style={{ color: "#777" }}>{item.description}</Text> : null}
             {!item.is_public ? <Text style={{ fontSize: 11, color: "#a00" }}>Private</Text> : null}
-          </View>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={{ color: "#777", marginTop: 8 }}>No lists yet.</Text>}
       />

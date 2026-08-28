@@ -2,7 +2,7 @@ import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from ".
 import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
-import { claimHandle, setCompassPosition, fetchPublicProfile } from "./queries";
+import { claimHandle, setCompassPosition, fetchPublicProfile, fetchListById } from "./queries";
 import {
   createDefaultRepostsList,
   createList,
@@ -620,6 +620,43 @@ describe("fetchPublicProfile", () => {
   it("returns null when no profile has that handle", async () => {
     const { client } = makeSelectMock({ data: null, error: null });
     expect(await fetchPublicProfile(client, "nobody")).toBeNull();
+  });
+});
+
+describe("fetchListById", () => {
+  function makeSelectMock(result: { data: any; error: any }) {
+    const maybeSingle = jest.fn().mockResolvedValue(result);
+    const eq = jest.fn().mockReturnValue({ maybeSingle });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from, select, eq };
+  }
+
+  it("returns the list when found", async () => {
+    const list = {
+      id: "list-1",
+      owner_id: "user-1",
+      name: "Reposts",
+      description: null,
+      is_public: true,
+      is_default: true,
+      created_at: "2026-08-01T00:00:00Z",
+    };
+    const { client, from, eq } = makeSelectMock({ data: list, error: null });
+    const result = await fetchListById(client, "list-1");
+    expect(from).toHaveBeenCalledWith("lists");
+    expect(eq).toHaveBeenCalledWith("id", "list-1");
+    expect(result).toEqual(list);
+  });
+
+  it("returns null when no list has that id (not found, or private and not visible via RLS)", async () => {
+    const { client } = makeSelectMock({ data: null, error: null });
+    expect(await fetchListById(client, "nonexistent")).toBeNull();
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeSelectMock({ data: null, error: { message: "boom" } });
+    await expect(fetchListById(client, "list-1")).rejects.toThrow("Failed to fetch list: boom");
   });
 });
 

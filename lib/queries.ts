@@ -238,6 +238,12 @@ export async function fetchPublicProfile(
   return data;
 }
 
+export async function fetchListById(supabase: SupabaseClient, listId: string): Promise<ListRow | null> {
+  const { data, error } = await supabase.from("lists").select("*").eq("id", listId).maybeSingle();
+  if (error) throw new Error(`Failed to fetch list: ${error.message}`);
+  return data;
+}
+
 export async function recordArticleView(
   supabase: SupabaseClient,
   userId: string,

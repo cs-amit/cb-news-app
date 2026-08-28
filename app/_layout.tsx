@@ -9,6 +9,7 @@ export default function RootLayout() {
       <Stack.Screen name="upgrade" options={{ title: "Save your progress" }} />
       <Stack.Screen name="quiz" options={{ title: "Where do you stand?" }} />
       <Stack.Screen name="profile/[handle]" options={{ title: "Profile" }} />
+      <Stack.Screen name="list/[id]" options={{ title: "List" }} />
     </Stack>
   );
 }
