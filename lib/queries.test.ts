@@ -5,6 +5,7 @@ import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries"
 import {
   claimHandle,
   completePendingHandleClaim,
+  recoverPendingHandleClaim,
   setCompassPosition,
   fetchPublicProfile,
   fetchListById,
@@ -746,6 +747,74 @@ describe("completePendingHandleClaim", () => {
       "Failed to create default list: boom"
     );
     expect(update).toHaveBeenCalledWith({ handle: "amit_57" });
+  });
+});
+
+describe("recoverPendingHandleClaim", () => {
+  function makeMockSupabase(profileResult: { data: any; error: any }, listResult?: { data: any; error: any }) {
+    const maybeSingle = jest.fn().mockResolvedValue(profileResult);
+    const eq = jest.fn().mockReturnValue({ maybeSingle });
+    const profileSelect = jest.fn().mockReturnValue({ eq });
+
+    const single = jest.fn().mockResolvedValue(listResult ?? { data: { id: "list-1" }, error: null });
+    const listSelect = jest.fn().mockReturnValue({ single });
+    const insert = jest.fn().mockReturnValue({ select: listSelect });
+
+    // Deliberately no `update` on the "profiles" table object returned here
+    // — recoverPendingHandleClaim must never call claimHandle (i.e. never
+    // .update() the profile). If it ever did, calling `.update` on this mock
+    // would throw (undefined is not a function), failing the test loudly
+    // rather than silently letting a handle-overwrite path sneak back in.
+    const from = jest.fn((table: string) => {
+      if (table === "profiles") return { select: profileSelect };
+      if (table === "lists") return { insert };
+      throw new Error(`unexpected table: ${table}`);
+    });
+
+    return { client: { from } as any, insert };
+  }
+
+  it("does not retry list creation when the handle was never actually claimed", async () => {
+    const { client, insert } = makeMockSupabase({
+      data: { id: "user-1", handle: null, streak_count: 0, longest_streak: 0, sides_seen_total: 0 },
+      error: null,
+    });
+
+    const result = await recoverPendingHandleClaim(client, "user-1");
+
+    expect(result?.handle).toBeNull();
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("retries default list creation once when the claim actually succeeded before the failure", async () => {
+    const { client, insert } = makeMockSupabase({
+      data: { id: "user-1", handle: "amit_57", streak_count: 0, longest_streak: 0, sides_seen_total: 0 },
+      error: null,
+    });
+
+    const result = await recoverPendingHandleClaim(client, "user-1");
+
+    expect(result?.handle).toBe("amit_57");
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ owner_id: "user-1", name: "Reposts", is_public: true, is_default: true })
+    );
+  });
+
+  // This is the regression case: claimHandle succeeded, createDefaultRepostsList
+  // then threw. A second completePendingHandleClaim call with a DIFFERENT
+  // handle must never run here — recoverPendingHandleClaim only ever reads
+  // the profile and retries the list creation, so there is no code path by
+  // which it could overwrite the already-claimed handle.
+  it("does not throw and still returns the claimed handle when the retried list creation fails again", async () => {
+    const { client, insert } = makeMockSupabase(
+      { data: { id: "user-1", handle: "amit_57", streak_count: 0, longest_streak: 0, sides_seen_total: 0 }, error: null },
+      { data: null, error: { message: "still failing" } }
+    );
+
+    const result = await recoverPendingHandleClaim(client, "user-1");
+
+    expect(result?.handle).toBe("amit_57");
+    expect(insert).toHaveBeenCalledTimes(1);
   });
 });
 

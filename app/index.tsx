@@ -13,6 +13,7 @@ import {
   addStoryToList,
   fetchUserLists,
   completePendingHandleClaim,
+  recoverPendingHandleClaim,
   Profile,
 } from "../lib/queries";
 import { Story } from "../lib/types";
@@ -105,14 +106,38 @@ export default function FeedScreen() {
                   setProfile(refreshed);
                   if (refreshed?.handle) await loadOwnHandleAndLists(id, refreshed.handle);
                 } catch (err) {
-                  // Realistic now that confirmation can complete on the
-                  // app's own schedule: e.g. someone else claimed the same
-                  // handle in the meantime. Don't clear the pending handle
-                  // (so it's still there to inspect/retry), and don't
-                  // swallow this silently — fall through to the recovery UI
-                  // so the user can pick a different one.
                   console.error("Failed to complete pending handle claim:", err);
-                  setShowHandleRecovery(true);
+                  // Re-fetch (via recoverPendingHandleClaim) before deciding
+                  // what to show — claimHandle may have actually succeeded
+                  // even though the overall call threw (see that function's
+                  // comment in lib/queries.ts). Falling through to the
+                  // recovery UI on the stale in-memory null here would let
+                  // the user type a DIFFERENT handle and silently overwrite
+                  // the one that was already successfully claimed.
+                  let refetched: Profile | null = null;
+                  try {
+                    refetched = await recoverPendingHandleClaim(supabase, id);
+                  } catch (fetchErr) {
+                    console.error("Failed to re-check profile after failed claim:", fetchErr);
+                  }
+                  if (refetched?.handle) {
+                    // The claim went through; recoverPendingHandleClaim
+                    // already retried the list creation. Never show the
+                    // recovery UI here: the handle is already claimed, so
+                    // there is nothing for the user to "recover" and no
+                    // handle input should be offered.
+                    await clearPendingHandle();
+                    setProfile(refetched);
+                    await loadOwnHandleAndLists(id, refetched.handle);
+                  } else {
+                    // Genuinely still unclaimed (e.g. someone else claimed
+                    // the same handle in the meantime). Don't clear the
+                    // pending handle (so it's still there to inspect/retry
+                    // via the recovery form's own claim attempt), and fall
+                    // through to the recovery UI so the user can pick a
+                    // different one.
+                    setShowHandleRecovery(true);
+                  }
                 }
               } else {
                 // Confirmed, but nothing locally stored to auto-apply.

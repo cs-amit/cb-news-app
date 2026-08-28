@@ -223,6 +223,37 @@ export async function completePendingHandleClaim(
   await createDefaultRepostsList(supabase, userId);
 }
 
+// Called when completePendingHandleClaim throws. claimHandle and
+// createDefaultRepostsList are two separate, non-transactional writes, so a
+// failure could mean either "nothing happened" or "the handle claim actually
+// succeeded and only the list creation failed" (e.g. a transient network
+// error after the first write landed). This re-fetches the profile rather
+// than trusting the caller's stale in-memory state, and — deliberately —
+// never calls claimHandle itself: app/index.tsx's recovery UI only appears
+// when this returns a profile with handle still null, so retrying claimHandle
+// here would risk the user later overwriting a handle that was already
+// successfully claimed with a different one they type into that form.
+export async function recoverPendingHandleClaim(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<Profile | null> {
+  const profile = await fetchProfile(supabase, userId);
+  if (profile?.handle) {
+    // The claim went through; only the list creation failed. Retry it once,
+    // best-effort — safe even if the earlier insert actually landed and only
+    // its response was lost, since the partial unique index added in
+    // 0006_social_layer.sql (lists_one_default_per_owner_idx) turns a
+    // duplicate-insert retry into a caught error rather than a second
+    // default list.
+    try {
+      await createDefaultRepostsList(supabase, userId);
+    } catch (err) {
+      console.error("Failed to create default list after handle claim:", err);
+    }
+  }
+  return profile;
+}
+
 export async function setCompassPosition(
   supabase: SupabaseClient,
   userId: string,
