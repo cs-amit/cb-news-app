@@ -2,7 +2,13 @@ import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from ".
 import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
-import { claimHandle, setCompassPosition, fetchPublicProfile, fetchListById } from "./queries";
+import {
+  claimHandle,
+  completePendingHandleClaim,
+  setCompassPosition,
+  fetchPublicProfile,
+  fetchListById,
+} from "./queries";
 import {
   createDefaultRepostsList,
   createList,
@@ -674,6 +680,72 @@ describe("createDefaultRepostsList", () => {
       expect.objectContaining({ owner_id: "user-1", name: "Reposts", is_public: true, is_default: true })
     );
     expect(id).toBe("list-1");
+  });
+});
+
+describe("completePendingHandleClaim", () => {
+  function makeMockSupabase(handleResult: { data: any; error: any }, listResult: { data: any; error: any }) {
+    const calls: string[] = [];
+
+    const eqHandle = jest.fn().mockImplementation(async () => {
+      calls.push("claimHandle");
+      return handleResult;
+    });
+    const update = jest.fn().mockReturnValue({ eq: eqHandle });
+
+    const single = jest.fn().mockImplementation(async () => {
+      calls.push("createDefaultRepostsList");
+      return listResult;
+    });
+    const select = jest.fn().mockReturnValue({ single });
+    const insert = jest.fn().mockReturnValue({ select });
+
+    const from = jest.fn((table: string) => {
+      if (table === "profiles") return { update };
+      if (table === "lists") return { insert };
+      throw new Error(`unexpected table: ${table}`);
+    });
+
+    return { client: { from } as any, update, insert, calls };
+  }
+
+  it("claims the handle, then creates the default reposts list, in that order", async () => {
+    const { client, update, insert, calls } = makeMockSupabase(
+      { data: null, error: null },
+      { data: { id: "list-1" }, error: null }
+    );
+
+    await completePendingHandleClaim(client, "user-1", "amit_57");
+
+    expect(update).toHaveBeenCalledWith({ handle: "amit_57" });
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ owner_id: "user-1", name: "Reposts", is_public: true, is_default: true })
+    );
+    expect(calls).toEqual(["claimHandle", "createDefaultRepostsList"]);
+  });
+
+  it("propagates a claimHandle failure (e.g. handle taken) without creating a list", async () => {
+    const { client, insert } = makeMockSupabase(
+      { data: null, error: { message: "duplicate key value" } },
+      { data: { id: "list-1" }, error: null }
+    );
+
+    await expect(completePendingHandleClaim(client, "user-1", "amit_57")).rejects.toThrow(
+      "Failed to claim handle: duplicate key value"
+    );
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("propagates a createDefaultRepostsList failure after the handle was already claimed", async () => {
+    const { client, update } = makeMockSupabase(
+      { data: null, error: null },
+      { data: null, error: { message: "boom" } }
+    );
+
+    await expect(completePendingHandleClaim(client, "user-1", "amit_57")).rejects.toThrow(
+      "Failed to create default list: boom"
+    );
+    expect(update).toHaveBeenCalledWith({ handle: "amit_57" });
   });
 });
 

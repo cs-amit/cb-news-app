@@ -33,6 +33,12 @@ create table list_items (
 create index lists_owner_id_idx on lists (owner_id);
 create index list_items_list_id_position_idx on list_items (list_id, position);
 
+-- Defense-in-depth against a duplicate default "Reposts" list (I5): the app
+-- layer already guards this (completePendingHandleClaim only ever fires once,
+-- gated on profiles.handle being null), but a partial unique index closes the
+-- gap at the DB level too, without constraining non-default lists at all.
+create unique index lists_one_default_per_owner_idx on lists (owner_id) where is_default;
+
 alter table lists enable row level security;
 alter table list_items enable row level security;
 

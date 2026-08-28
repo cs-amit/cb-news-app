@@ -208,6 +208,21 @@ export async function claimHandle(supabase: SupabaseClient, userId: string, hand
   if (error) throw new Error(`Failed to claim handle: ${error.message}`);
 }
 
+// Composes claimHandle + createDefaultRepostsList for the deferred-claim
+// upgrade flow (app/index.tsx): the caller is responsible for only invoking
+// this once the user's email is actually confirmed and for reading/clearing
+// the AsyncStorage-backed pending handle (lib/handle.ts) around the call —
+// this function itself stays a thin, order-guaranteed composition with no
+// confirmation check or storage access of its own.
+export async function completePendingHandleClaim(
+  supabase: SupabaseClient,
+  userId: string,
+  pendingHandle: string
+): Promise<void> {
+  await claimHandle(supabase, userId, pendingHandle);
+  await createDefaultRepostsList(supabase, userId);
+}
+
 export async function setCompassPosition(
   supabase: SupabaseClient,
   userId: string,

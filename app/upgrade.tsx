@@ -2,9 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
-import { getUserId } from "../lib/auth";
-import { isValidHandle } from "../lib/handle";
-import { claimHandle, createDefaultRepostsList } from "../lib/queries";
+import { isValidHandle, savePendingHandle } from "../lib/handle";
 
 export default function UpgradeScreen() {
   const router = useRouter();
@@ -33,16 +31,14 @@ export default function UpgradeScreen() {
       setStatus("error");
       return;
     }
-    try {
-      const userId = await getUserId(supabase);
-      await claimHandle(supabase, userId, trimmedHandle);
-      await createDefaultRepostsList(supabase, userId);
-    } catch (err) {
-      // The email confirmation already sent successfully — a handle/list
-      // hiccup here must not block the user from finishing email
-      // confirmation. They can pick a handle again from their profile.
-      console.error("Failed to claim handle after upgrade:", err);
-    }
+    // Defer the actual handle claim until the email is confirmed — writing
+    // it to the unique profiles.handle column now (while still anonymous)
+    // would let anyone squat a desirable handle by entering an email they
+    // never confirm. Stash it locally; app/index.tsx picks it up and calls
+    // completePendingHandleClaim once supabase.auth.getUser() shows
+    // email_confirmed_at is actually set (checked on every app open, so
+    // this also survives the confirmation happening out-of-band).
+    await savePendingHandle(trimmedHandle);
     setStatus("sent");
   }
 

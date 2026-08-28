@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FlatList, Text, Pressable, View, ActivityIndicator } from "react-native";
+import { FlatList, Text, Pressable, View, ActivityIndicator, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
@@ -12,9 +12,11 @@ import {
   recomputeAndSaveStreak,
   addStoryToList,
   fetchUserLists,
+  completePendingHandleClaim,
   Profile,
 } from "../lib/queries";
 import { Story } from "../lib/types";
+import { isValidHandle, readPendingHandle, clearPendingHandle } from "../lib/handle";
 import {
   requestNotificationPermission,
   ensureAndroidChannel,
@@ -36,7 +38,29 @@ export default function FeedScreen() {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [ownHandle, setOwnHandle] = useState<string | null>(null);
   const [repostsListId, setRepostsListId] = useState<string | null>(null);
+  // I3 recovery: shown when the user's email is confirmed but no handle got
+  // claimed automatically (no locally-stored pending handle to auto-apply —
+  // e.g. app data was cleared, or confirmation happened via a different
+  // install). See handleClaimRecoveryHandle below.
+  const [showHandleRecovery, setShowHandleRecovery] = useState(false);
+  const [recoveryHandle, setRecoveryHandle] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recoverySubmitting, setRecoverySubmitting] = useState(false);
   const router = useRouter();
+
+  // Shared by the initial profile load and both handle-claim success paths
+  // below so ownHandle/repostsListId reflect a just-claimed handle in the
+  // same session, without duplicating the fetch-and-set logic three times.
+  async function loadOwnHandleAndLists(id: string, handle: string) {
+    setOwnHandle(handle);
+    try {
+      const lists = await fetchUserLists(supabase, id);
+      const reposts = lists.find((l) => l.is_default);
+      if (reposts) setRepostsListId(reposts.id);
+    } catch (err) {
+      console.error("Failed to load reposts list:", err);
+    }
+  }
 
   useEffect(() => {
     fetchRecentStories(supabase)
@@ -60,13 +84,43 @@ export default function FeedScreen() {
         setProfile(p);
 
         if (p?.handle) {
-          setOwnHandle(p.handle);
+          await loadOwnHandleAndLists(id, p.handle);
+        } else if (p) {
+          // No handle yet — this is either a plain anonymous user who never
+          // started the upgrade flow (nothing to do), or someone mid-upgrade
+          // whose email may since have been confirmed out-of-band (a tapped
+          // link, not an in-app action — see lib/auth.ts's refreshSession
+          // comment). Check every app open, not just once at signup, so a
+          // confirmation that lands later still gets picked up.
           try {
-            const lists = await fetchUserLists(supabase, id);
-            const reposts = lists.find((l) => l.is_default);
-            if (reposts) setRepostsListId(reposts.id);
+            const { data: userData, error: userError } = await supabase.auth.getUser();
+            if (userError) throw userError;
+            if (userData.user?.email_confirmed_at) {
+              const pendingHandle = await readPendingHandle();
+              if (pendingHandle) {
+                try {
+                  await completePendingHandleClaim(supabase, id, pendingHandle);
+                  await clearPendingHandle();
+                  const refreshed = await fetchProfile(supabase, id);
+                  setProfile(refreshed);
+                  if (refreshed?.handle) await loadOwnHandleAndLists(id, refreshed.handle);
+                } catch (err) {
+                  // Realistic now that confirmation can complete on the
+                  // app's own schedule: e.g. someone else claimed the same
+                  // handle in the meantime. Don't clear the pending handle
+                  // (so it's still there to inspect/retry), and don't
+                  // swallow this silently — fall through to the recovery UI
+                  // so the user can pick a different one.
+                  console.error("Failed to complete pending handle claim:", err);
+                  setShowHandleRecovery(true);
+                }
+              } else {
+                // Confirmed, but nothing locally stored to auto-apply.
+                setShowHandleRecovery(true);
+              }
+            }
           } catch (err) {
-            console.error("Failed to load reposts list:", err);
+            console.error("Failed to check email confirmation status:", err);
           }
         }
 
@@ -142,6 +196,33 @@ export default function FeedScreen() {
     await AsyncStorage.setItem(UPGRADE_PROMPT_DISMISSED_KEY, "true");
   }
 
+  async function handleClaimRecoveryHandle() {
+    if (!userId) return;
+    const trimmed = recoveryHandle.trim().toLowerCase();
+    if (!isValidHandle(trimmed)) {
+      setRecoveryError("Handle must be 3-20 characters: lowercase letters, digits, or underscore.");
+      return;
+    }
+    setRecoverySubmitting(true);
+    setRecoveryError("");
+    try {
+      await completePendingHandleClaim(supabase, userId, trimmed);
+      // Clears any stale pending handle left over from a failed automatic
+      // claim attempt (e.g. it was taken by someone else) — this manually
+      // typed handle is the one that actually got claimed, so nothing
+      // should be left around to (harmlessly, but confusingly) linger.
+      await clearPendingHandle();
+      setShowHandleRecovery(false);
+      const refreshed = await fetchProfile(supabase, userId);
+      setProfile(refreshed);
+      if (refreshed?.handle) await loadOwnHandleAndLists(userId, refreshed.handle);
+    } catch (err) {
+      setRecoveryError(err instanceof Error ? err.message : "Couldn't save that handle.");
+    } finally {
+      setRecoverySubmitting(false);
+    }
+  }
+
   async function handleRepost(storyId: string) {
     if (!repostsListId) return;
     try {
@@ -172,6 +253,37 @@ export default function FeedScreen() {
                 </Pressable>
                 <Pressable onPress={handleDismissUpgradePrompt}>
                   <Text style={{ color: "#777" }}>Maybe later</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+          {showHandleRecovery ? (
+            <View style={{ padding: 16, backgroundColor: "#f5f5f5" }}>
+              <Text>
+                Your email is confirmed. Pick a handle to finish setting up sharing and your
+                public profile.
+              </Text>
+              <TextInput
+                value={recoveryHandle}
+                onChangeText={setRecoveryHandle}
+                placeholder="handle (lowercase, 3-20 chars)"
+                autoCapitalize="none"
+                style={{
+                  marginTop: 8,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 4,
+                  padding: 12,
+                }}
+              />
+              {recoveryError ? (
+                <Text style={{ marginTop: 4, color: "#a00" }}>{recoveryError}</Text>
+              ) : null}
+              <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
+                <Pressable onPress={handleClaimRecoveryHandle} disabled={recoverySubmitting}>
+                  <Text style={{ color: "#0066cc", fontWeight: "600" }}>
+                    {recoverySubmitting ? "Saving..." : "Save handle"}
+                  </Text>
                 </Pressable>
               </View>
             </View>
