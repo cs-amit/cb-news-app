@@ -2,6 +2,7 @@ import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from ".
 import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
+import { applyPollDrift } from "./queries";
 import {
   claimHandle,
   completePendingHandleClaim,
@@ -963,5 +964,47 @@ describe("reorderListItems", () => {
     expect(update).toHaveBeenCalledWith({ position: 1 });
     expect(eq).toHaveBeenCalledWith("id", "i1");
     expect(eq).toHaveBeenCalledWith("id", "i2");
+  });
+});
+
+describe("applyPollDrift", () => {
+  function makeMock(profileRow: any) {
+    const maybeSingle = jest.fn().mockResolvedValue({ data: profileRow, error: null });
+    const eqSelect = jest.fn().mockReturnValue({ maybeSingle });
+    const select = jest.fn().mockReturnValue({ eq: eqSelect });
+    const eqUpdate = jest.fn().mockResolvedValue({ data: null, error: null });
+    const update = jest.fn().mockReturnValue({ eq: eqUpdate });
+    const from = jest.fn().mockReturnValue({ select, update });
+    return { client: { from } as any, select, update, eqUpdate };
+  }
+
+  it("reads the current drift state, computes the new one, and writes it back", async () => {
+    const { client, update, eqUpdate } = makeMock({
+      compass_position: 0,
+      compass_week_started_at: null,
+      compass_week_delta: 0,
+    });
+
+    await applyPollDrift(client, "user-1", "friendly");
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        compass_position: expect.any(Number),
+        compass_week_delta: expect.any(Number),
+      })
+    );
+    expect(eqUpdate).toHaveBeenCalledWith("id", "user-1");
+  });
+
+  it("does nothing if the profile has never taken the quiz (position is null)", async () => {
+    const { client, update } = makeMock({
+      compass_position: null,
+      compass_week_started_at: null,
+      compass_week_delta: 0,
+    });
+
+    await applyPollDrift(client, "user-1", "friendly");
+
+    expect(update).not.toHaveBeenCalled();
   });
 });

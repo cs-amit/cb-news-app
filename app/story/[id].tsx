@@ -13,6 +13,7 @@ import {
   submitPollResponse,
   fetchPollTally,
   fetchPollTallies,
+  applyPollDrift,
   FactCheck,
   PollTally,
 } from "../../lib/queries";
@@ -46,6 +47,11 @@ export default function StoryScreen() {
       await submitPollResponse(supabase, userId, story!.id, outletId, response);
       const tally = await fetchPollTally(supabase, story!.id, outletId);
       setPollTallies((prev) => ({ ...prev, [outletId]: tally }));
+      // Fire-and-forget: a drift-save hiccup must never block the tally the
+      // user is watching update in front of them.
+      applyPollDrift(supabase, userId, response).catch((err) =>
+        console.error("Failed to apply compass drift:", err)
+      );
     } catch (err) {
       console.error("Failed to submit poll response:", err);
     }

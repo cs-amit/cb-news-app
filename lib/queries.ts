@@ -3,6 +3,7 @@ import { Story, ArticleWithOutlet, ConflictFlag } from "./types";
 import { OutletSummary, computeSilentOutlets } from "./silence";
 import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
 import { PollResponseValue } from "./polls";
+import { computeDrift, PollResponseForDrift } from "./compassDrift";
 
 export async function fetchRecentStories(supabase: SupabaseClient): Promise<Story[]> {
   const { data, error } = await supabase
@@ -264,6 +265,43 @@ export async function setCompassPosition(
     .update({ compass_position: position, compass_quiz_taken_at: new Date().toISOString() })
     .eq("id", userId);
   if (error) throw new Error(`Failed to save compass position: ${error.message}`);
+}
+
+// No-ops for a user who hasn't taken the quiz yet (compass_position is
+// null) — there is nothing to drift, and writing a synthetic starting
+// position here would silently bypass the quiz.
+export async function applyPollDrift(
+  supabase: SupabaseClient,
+  userId: string,
+  response: PollResponseForDrift
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("compass_position, compass_week_started_at, compass_week_delta")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to fetch compass state: ${error.message}`);
+  if (!data || data.compass_position === null) return;
+
+  const next = computeDrift(
+    {
+      position: data.compass_position,
+      weekStartedAt: data.compass_week_started_at ?? new Date(0).toISOString(),
+      weekDelta: data.compass_week_delta,
+    },
+    response,
+    new Date()
+  );
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({
+      compass_position: next.position,
+      compass_week_started_at: next.weekStartedAt,
+      compass_week_delta: next.weekDelta,
+    })
+    .eq("id", userId);
+  if (updateError) throw new Error(`Failed to save compass drift: ${updateError.message}`);
 }
 
 export interface PublicProfile {
