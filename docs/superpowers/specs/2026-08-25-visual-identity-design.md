@@ -39,14 +39,16 @@ An initial round (indigo/teal/violet/slate-gold) was rejected as "too corporate/
 
 Follows the industry-standard red/amber/green ("RAG") traffic-light convention used by PolitiFact's Truth-O-Meter and similar tools — appropriate here because verdict truthfulness is an objective-accuracy category, distinct from political-lean coloring (which this product deliberately avoids — see §5).
 
-| Verdict | Text/icon color | Background |
-|---|---|---|
-| True | `#2E9B57` (proposed, matched to the red's saturation) | `#E6F3EA` |
-| False | `#D9382E` (user-supplied) | `#FBEAE9` |
-| Misleading | `#D9A82E` (proposed) | `#FBF1E1` |
-| Unverified | `#667085` (user-supplied grey) | `#EEF0F2` |
+| Verdict | Text/icon color | Background | Contrast |
+|---|---|---|---|
+| True | `#1B7A3D` | `#E6F3EA` | 4.71:1 |
+| False | `#C42B21` | `#FBEAE9` | 4.86:1 |
+| Misleading | `#8A6410` | `#FBF1E1` | 4.80:1 |
+| Unverified | `#55606E` | `#EEF0F2` | 5.60:1 |
 
-Accessibility: color is never the sole signal — every verdict badge always renders its text label ("TRUE", "FALSE", etc.) alongside the color, satisfying WCAG's requirement that color not be the only conveyed meaning. Red and green are pulled toward orange/teal respectively (rather than pure opposites) to stay more distinguishable for the most common forms of colorblindness.
+**2026-08-29 amendment (contrast):** the original text colors (`#2E9B57` / `#D9382E` / `#D9A82E` / `#667085`) rendered at 1.96:1–3.96:1 against these backgrounds — below WCAG AA's 4.5:1 for normal text, and the amber ("Misleading") was close to unreadable on cream. The badge text was also 11px (never "large text"). The text hexes above are darkened to clear 4.5:1 on the *unchanged* backgrounds while keeping each verdict's hue identity (green / red / amber / grey), and the badge renders at 12px. Backgrounds are unchanged. This was flagged by the visual-identity implementation's final review.
+
+Accessibility: color is never the sole signal — every verdict badge always renders its text label ("TRUE", "FALSE", etc.) alongside the color, satisfying WCAG's requirement that color not be the only conveyed meaning, and every text/background pair now also meets WCAG AA contrast (≥ 4.5:1). Red and green are pulled toward orange/teal respectively (rather than pure opposites) to stay more distinguishable for the most common forms of colorblindness.
 
 ### Outlet poll (critical / balanced / friendly)
 

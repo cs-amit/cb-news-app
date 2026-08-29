@@ -347,7 +347,7 @@ export default function StoryScreen() {
               >
                 <Text
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontFamily: fonts.uiSemiBold,
                     color: verdictColors[factCheck.verdict as Verdict]?.text ?? colors.textSecondary,
                   }}

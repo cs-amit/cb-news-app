@@ -22,11 +22,14 @@ export const fonts = {
 
 export type Verdict = "True" | "False" | "Misleading" | "Unverified";
 
+// Text colors darkened per the spec's 2026-08-29 contrast amendment — every
+// pair now clears WCAG AA (≥ 4.5:1) on the unchanged backgrounds. Badge text
+// renders at 12px (see app/story/[id].tsx).
 export const verdictColors: Record<Verdict, { text: string; background: string }> = {
-  True: { text: "#2E9B57", background: "#E6F3EA" },
-  False: { text: colors.red, background: "#FBEAE9" },
-  Misleading: { text: "#D9A82E", background: "#FBF1E1" },
-  Unverified: { text: colors.textSecondary, background: colors.surfaceSubtle },
+  True: { text: "#1B7A3D", background: "#E6F3EA" },
+  False: { text: "#C42B21", background: "#FBEAE9" },
+  Misleading: { text: "#8A6410", background: "#FBF1E1" },
+  Unverified: { text: "#55606E", background: colors.surfaceSubtle },
 };
 
 export type PollResponse = "critical" | "balanced" | "friendly";
