@@ -9,6 +9,7 @@
     "dotenv": "^17.4.2",
     "expo": "~57.0.13",
     "expo-constants": "~57.0.11",
+    "expo-dev-client": "~57.0.14",
     "expo-linking": "~57.0.6",
     "expo-notifications": "~57.0.13",
     "expo-router": "~57.0.13",

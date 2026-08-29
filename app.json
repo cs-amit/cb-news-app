@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.csamit.cb_app_tmp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -25,6 +26,12 @@
       "expo-router",
       "expo-status-bar",
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5f349431-8f31-49ec-8b13-b7224edb7e88"
+      }
+    }
   }
 }
