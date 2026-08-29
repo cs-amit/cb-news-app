@@ -3,6 +3,7 @@ import { View, Text, FlatList, Pressable, ActivityIndicator } from "react-native
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { fetchListById, fetchListItems, ListRow, ListItemRow } from "../../lib/queries";
+import { colors, fonts } from "../../lib/theme";
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,13 +35,22 @@ export default function ListDetailScreen() {
   }, [id]);
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-  if (error || !list) return <Text style={{ padding: 16 }}>{error ?? "List not found."}</Text>;
+  if (error || !list)
+    return (
+      <Text style={{ padding: 16, fontFamily: fonts.ui, color: colors.textPrimary }}>
+        {error ?? "List not found."}
+      </Text>
+    );
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "700" }}>{list.name}</Text>
-      {list.description ? <Text style={{ marginTop: 4, color: "#555" }}>{list.description}</Text> : null}
-      {!list.is_public ? <Text style={{ fontSize: 11, color: "#a00", marginTop: 4 }}>Private</Text> : null}
+    <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
+      <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>{list.name}</Text>
+      {list.description ? (
+        <Text style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}>{list.description}</Text>
+      ) : null}
+      {!list.is_public ? (
+        <Text style={{ fontSize: 11, color: colors.red, marginTop: 4, fontFamily: fonts.ui }}>Private</Text>
+      ) : null}
       <FlatList
         style={{ marginTop: 20 }}
         data={items}
@@ -48,15 +58,19 @@ export default function ListDetailScreen() {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/story/${item.story_id}`)}
-            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}
+            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}
           >
-            <Text style={{ fontWeight: "500" }}>
+            <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
               {item.story?.canonical_headline ?? "Untitled story"}
             </Text>
-            {item.story?.summary ? <Text style={{ color: "#777" }}>{item.story.summary}</Text> : null}
+            {item.story?.summary ? (
+              <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>{item.story.summary}</Text>
+            ) : null}
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={{ color: "#777", marginTop: 8 }}>No stories yet.</Text>}
+        ListEmptyComponent={
+          <Text style={{ color: colors.textSecondary, marginTop: 8, fontFamily: fonts.ui }}>No stories yet.</Text>
+        }
       />
     </View>
   );

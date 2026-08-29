@@ -22,6 +22,7 @@ import { OutletSummary } from "../../lib/silence";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { buildShareText } from "../../lib/shareCopy";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
+import { colors, fonts, verdictColors, pollColors, Verdict, PollResponse } from "../../lib/theme";
 
 // Shared country baseline every outlet starts from (RSF World Press Freedom
 // Index score for India), mirrored from the seed data and the Methodology
@@ -97,16 +98,27 @@ export default function StoryScreen() {
   }, [id]);
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-  if (error || !story) return <Text style={{ padding: 16 }}>Couldn't load story: {error}</Text>;
+  if (error || !story)
+    return (
+      <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>
+        Couldn't load story: {error}
+      </Text>
+    );
 
   const flagsByOutlet = new Map(conflictFlags.map((f) => [f.outlet_id, f]));
 
   const framingSpectrum = pickFramingSpectrum(articles);
 
   return (
-    <ScrollView style={{ padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "700" }}>{story.canonical_headline}</Text>
-      {story.summary ? <Text style={{ marginTop: 8, color: "#555" }}>{story.summary}</Text> : null}
+    <ScrollView style={{ padding: 16, backgroundColor: colors.background }}>
+      <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>
+        {story.canonical_headline}
+      </Text>
+      {story.summary ? (
+        <Text style={{ marginTop: 8, color: colors.textSecondary, fontFamily: fonts.ui }}>
+          {story.summary}
+        </Text>
+      ) : null}
       <Pressable
         onPress={() => {
           const silentCount = silentOutlets.length;
@@ -120,12 +132,12 @@ export default function StoryScreen() {
         }}
         style={{ marginTop: 12 }}
       >
-        <Text style={{ color: "#0066cc", fontWeight: "600" }}>Share this story →</Text>
+        <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Share this story →</Text>
       </Pressable>
       {framingSpectrum.length === 2 ? (
         <View style={{ marginTop: 24 }}>
-          <Text style={{ fontWeight: "600" }}>Compare framing</Text>
-          <Text style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>Compare framing</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2, fontFamily: fonts.ui }}>
             How the two most differently-scored outlets covering this story headlined it:
           </Text>
           {framingSpectrum.map((article) => (
@@ -134,13 +146,17 @@ export default function StoryScreen() {
               onPress={() => Linking.openURL(article.url)}
               style={{ marginTop: 8 }}
             >
-              <Text style={{ fontWeight: "500" }}>{article.outlet?.name}</Text>
-              <Text style={{ color: "#333" }}>{article.title}</Text>
+              <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+                {article.outlet?.name}
+              </Text>
+              <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>{article.title}</Text>
             </Pressable>
           ))}
         </View>
       ) : null}
-      <Text style={{ marginTop: 24, fontWeight: "600" }}>Sources ({articles.length})</Text>
+      <Text style={{ marginTop: 24, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+        Sources ({articles.length})
+      </Text>
       {articles.map((article) => {
         const outlet = article.outlet;
         const flag = outlet ? flagsByOutlet.get(outlet.id) : undefined;
@@ -187,29 +203,38 @@ export default function StoryScreen() {
                   .catch((err) => console.error("Failed to record view/streak:", err));
               }
             }}
-            style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: "#eee" }}
+            style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-              <Text style={{ fontWeight: "500" }}>{outlet?.name ?? "Unknown outlet"}</Text>
+              <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+                {outlet?.name ?? "Unknown outlet"}
+              </Text>
               {outlet?.is_youtube ? (
-                <Text style={{ marginLeft: 6, fontSize: 11, color: "#a00", fontWeight: "600" }}>
+                <Text
+                  style={{
+                    marginLeft: 6,
+                    fontSize: 11,
+                    color: colors.red,
+                    fontFamily: fonts.uiSemiBold,
+                  }}
+                >
                   YOUTUBE
                 </Text>
               ) : null}
             </View>
-            <Text style={{ color: "#333" }}>{article.title}</Text>
+            <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>{article.title}</Text>
             {outlet?.ownership ? (
-              <Text style={{ marginTop: 2, fontSize: 12, color: "#777" }}>
+              <Text style={{ marginTop: 2, fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
                 Owned by: {outlet.ownership.owner}
               </Text>
             ) : null}
             {outlet?.ownership?.citation_url ? (
-              <Text style={{ fontSize: 11, color: "#999" }}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui }}>
                 Source: {outlet.ownership.citation_url}
               </Text>
             ) : null}
             {outlet?.ownership?.note ? (
-              <Text style={{ marginTop: 2, fontSize: 12, color: "#777" }}>
+              <Text style={{ marginTop: 2, fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
                 Press freedom note: {outlet.ownership.note}
                 {outlet.ownership.note_citation_url
                   ? ` (source: ${outlet.ownership.note_citation_url})`
@@ -217,13 +242,15 @@ export default function StoryScreen() {
               </Text>
             ) : null}
             {flag ? (
-              <Text style={{ marginTop: 2, fontSize: 12, color: "#a00" }}>
+              <Text style={{ marginTop: 2, fontSize: 12, color: colors.red, fontFamily: fonts.ui }}>
                 ⚠ Owner mentioned in this story ("{flag.matched_entity}"): {flag.evidence_text}
               </Text>
             ) : null}
             {comparisons.length > 0 ? (
               <View style={{ marginTop: 4 }}>
-                <Text style={{ fontSize: 11, color: "#777" }}>Compare coverage:</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui }}>
+                  Compare coverage:
+                </Text>
                 {comparisons.map((comparisonArticle) => (
                   <Pressable
                     key={comparisonArticle.id}
@@ -232,7 +259,7 @@ export default function StoryScreen() {
                       Linking.openURL(comparisonArticle.url);
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: "#0066cc", marginTop: 2 }}>
+                    <Text style={{ fontSize: 12, color: colors.primary, marginTop: 2, fontFamily: fonts.ui }}>
                       {comparisonArticle.outlet?.name ?? "Unknown outlet"}: {comparisonArticle.title}
                     </Text>
                   </Pressable>
@@ -240,7 +267,7 @@ export default function StoryScreen() {
               </View>
             ) : null}
             {hasScores ? (
-              <Text style={{ marginTop: 2, fontSize: 12, color: "#777" }}>
+              <Text style={{ marginTop: 2, fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
                 {outlet?.govt_lean_score != null
                   ? `Govt-lean: ${outlet.govt_lean_score}/100${govtLeanProvenance}  `
                   : ""}
@@ -254,7 +281,7 @@ export default function StoryScreen() {
             ) : null}
             {outlet && shouldShowPoll(outlet) ? (
               <View style={{ marginTop: 6 }}>
-                <Text style={{ fontSize: 12, color: "#777" }}>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
                   Did this outlet feel balanced covering this?
                   {pollTallies[outlet.id]?.total
                     ? ` (${Math.round(
@@ -270,8 +297,16 @@ export default function StoryScreen() {
                         e.stopPropagation();
                         handlePollResponse(outlet.id, option);
                       }}
+                      style={{
+                        backgroundColor: pollColors[option as PollResponse],
+                        borderRadius: 12,
+                        paddingVertical: 4,
+                        paddingHorizontal: 10,
+                      }}
                     >
-                      <Text style={{ fontSize: 12, color: "#0066cc" }}>{option}</Text>
+                      <Text style={{ fontSize: 12, fontFamily: fonts.uiSemiBold, color: colors.background }}>
+                        {option}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>
@@ -282,23 +317,47 @@ export default function StoryScreen() {
       })}
       {silentOutlets.length > 0 ? (
         <View style={{ marginTop: 24 }}>
-          <Text style={{ fontWeight: "600" }}>Not yet covered by</Text>
-          <Text style={{ marginTop: 4, color: "#555" }}>{silentOutlets.map((o) => o.name).join(", ")}</Text>
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>Not yet covered by</Text>
+          <Text style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}>
+            {silentOutlets.map((o) => o.name).join(", ")}
+          </Text>
         </View>
       ) : null}
       {factChecks.length > 0 ? (
         <View style={{ marginTop: 24 }}>
-          <Text style={{ fontWeight: "600" }}>Fact-checked</Text>
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>Fact-checked</Text>
           {factChecks.map((factCheck, index) => (
             <Pressable
               key={`${factCheck.url}-${index}`}
               onPress={() => Linking.openURL(factCheck.url)}
               style={{ marginTop: 8 }}
             >
-              <Text style={{ fontWeight: "500" }}>
-                {factCheck.source_org}: {factCheck.verdict}
+              <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+                {factCheck.source_org}
               </Text>
-              <Text style={{ fontSize: 12, color: "#777" }}>{factCheck.claim}</Text>
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  paddingVertical: 4,
+                  paddingHorizontal: 10,
+                  borderRadius: 12,
+                  backgroundColor:
+                    verdictColors[factCheck.verdict as Verdict]?.background ?? colors.surfaceSubtle,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontFamily: fonts.uiSemiBold,
+                    color: verdictColors[factCheck.verdict as Verdict]?.text ?? colors.textSecondary,
+                  }}
+                >
+                  {factCheck.verdict.toUpperCase()}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
+                {factCheck.claim}
+              </Text>
             </Pressable>
           ))}
         </View>

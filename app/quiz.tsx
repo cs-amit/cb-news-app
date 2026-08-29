@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/auth";
 import { QUIZ_QUESTIONS, scoreQuizAnswers } from "../lib/compass";
 import { setCompassPosition } from "../lib/queries";
+import { colors, fonts } from "../lib/theme";
 
 const LIKERT_OPTIONS: { label: string; value: number }[] = [
   { label: "Strongly disagree", value: -2 },
@@ -37,28 +38,32 @@ export default function QuizScreen() {
 
   if (status === "done" && resultPosition !== null) {
     return (
-      <View style={{ padding: 16 }}>
-        <Text style={{ fontSize: 18, fontWeight: "700" }}>Your position: {resultPosition}</Text>
-        <Text style={{ marginTop: 8, color: "#555" }}>
+      <View style={{ padding: 16, backgroundColor: colors.background, flex: 1 }}>
+        <Text style={{ fontSize: 18, fontFamily: fonts.headline, color: colors.textPrimary }}>
+          Your position: {resultPosition}
+        </Text>
+        <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
           -100 is government-critical, +100 is government-friendly. This is a badge, not a filter
           — it never changes which stories or outlets you see.
         </Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: "#0066cc", fontWeight: "600" }}>Done</Text>
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.primary }}>Done</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <ScrollView style={{ padding: 16 }}>
-      <Text style={{ fontSize: 18, fontWeight: "700" }}>Where do you stand?</Text>
-      <Text style={{ marginTop: 8, color: "#555" }}>
+    <ScrollView style={{ padding: 16, backgroundColor: colors.background }}>
+      <Text style={{ fontSize: 18, fontFamily: fonts.headline, color: colors.textPrimary }}>
+        Where do you stand?
+      </Text>
+      <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
         This never changes what you're shown — it's a badge for your profile, not a filter.
       </Text>
       {QUIZ_QUESTIONS.map((q) => (
         <View key={q.id} style={{ marginTop: 20 }}>
-          <Text style={{ fontWeight: "600" }}>{q.statement}</Text>
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>{q.statement}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             {LIKERT_OPTIONS.map((option) => (
               <Pressable
@@ -66,12 +71,17 @@ export default function QuizScreen() {
                 onPress={() => setAnswers((prev) => ({ ...prev, [q.id]: option.value }))}
                 style={{
                   borderWidth: 1,
-                  borderColor: answers[q.id] === option.value ? "#0066cc" : "#ccc",
+                  borderColor: answers[q.id] === option.value ? colors.primary : colors.border,
                   borderRadius: 4,
                   padding: 8,
                 }}
               >
-                <Text style={{ color: answers[q.id] === option.value ? "#0066cc" : "#333" }}>
+                <Text
+                  style={{
+                    fontFamily: fonts.ui,
+                    color: answers[q.id] === option.value ? colors.primary : colors.textPrimary,
+                  }}
+                >
                   {option.label}
                 </Text>
               </Pressable>
@@ -84,7 +94,12 @@ export default function QuizScreen() {
         disabled={!allAnswered || status === "submitting"}
         style={{ marginTop: 24, marginBottom: 40 }}
       >
-        <Text style={{ color: allAnswered ? "#0066cc" : "#aaa", fontWeight: "600" }}>
+        <Text
+          style={{
+            fontFamily: fonts.uiSemiBold,
+            color: allAnswered ? colors.primary : colors.textSecondary,
+          }}
+        >
           {status === "submitting" ? "Saving..." : "See my position"}
         </Text>
       </Pressable>
