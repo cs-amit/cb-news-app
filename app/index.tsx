@@ -25,12 +25,13 @@ import {
 } from "../lib/notifications";
 import { buildDailyDigestCopy } from "../lib/notificationCopy";
 import { colors, fonts } from "../lib/theme";
+import { TOPICS_ALL, TOPIC_LABELS } from "../lib/topics";
 
 const NOTIFICATION_PROMPT_DISMISSED_KEY = "notificationPromptDismissed";
 const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
 const UPGRADE_PROMPT_DISMISSED_KEY = "upgradePromptDismissed";
 
-const TOPICS = ["politics", "business", "science-tech", "sports", "entertainment"] as const;
+const TOPICS = TOPICS_ALL.filter((t) => t !== "other");
 
 export default function FeedScreen() {
   const [stories, setStories] = useState<Story[]>([]);
@@ -68,11 +69,22 @@ export default function FeedScreen() {
   }
 
   useEffect(() => {
+    let cancelled = false;
+    setError(null);
     setLoading(true);
     fetchRecentStories(supabase, selectedTopic ?? undefined)
-      .then(setStories)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .then((s) => {
+        if (!cancelled) setStories(s);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTopic]);
 
   useEffect(() => {
@@ -262,7 +274,7 @@ export default function FeedScreen() {
     }
   }
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
+  if (loading && stories.length === 0) return <ActivityIndicator style={{ flex: 1 }} />;
   if (error) return <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>Couldn't load stories: {error}</Text>;
 
   return (
@@ -342,7 +354,10 @@ export default function FeedScreen() {
             </Text>
           ) : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16, paddingTop: 0 }}>
-            <Pressable onPress={() => setSelectedTopic(null)}>
+            <Pressable
+              onPress={() => setSelectedTopic(null)}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            >
               <Text
                 style={{
                   fontFamily: selectedTopic === null ? fonts.uiSemiBold : fonts.ui,
@@ -353,14 +368,18 @@ export default function FeedScreen() {
               </Text>
             </Pressable>
             {TOPICS.map((t) => (
-              <Pressable key={t} onPress={() => setSelectedTopic(t)}>
+              <Pressable
+                key={t}
+                onPress={() => setSelectedTopic(t)}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+              >
                 <Text
                   style={{
                     fontFamily: selectedTopic === t ? fonts.uiSemiBold : fonts.ui,
                     color: selectedTopic === t ? colors.primary : colors.textSecondary,
                   }}
                 >
-                  {t}
+                  {TOPIC_LABELS[t]}
                 </Text>
               </Pressable>
             ))}
@@ -406,7 +425,13 @@ export default function FeedScreen() {
       )}
       ListEmptyComponent={
         <View style={{ padding: 16 }}>
-          <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>No stories yet.</Text>
+          <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>
+            {selectedTopic
+              ? `No stories tagged "${
+                  TOPIC_LABELS[selectedTopic as keyof typeof TOPIC_LABELS] ?? selectedTopic
+                }" yet.`
+              : "No stories yet."}
+          </Text>
         </View>
       }
     />

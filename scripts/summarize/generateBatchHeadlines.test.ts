@@ -46,10 +46,16 @@ describe("parseBatchResponse topic classification", () => {
     expect(results[0].topic).toBe("politics");
   });
 
-  it("falls back to null when topic is missing or invalid", () => {
+  it("falls back to null for an unrecognized topic", () => {
     const raw = '[{"index": 1, "headline": "H", "summary": "S", "topic": "not-a-real-topic"}]';
     const results = parseBatchResponse(raw);
     expect(results[0].topic).toBeNull();
+  });
+
+  it("normalizes case and surrounding whitespace on a valid topic", () => {
+    const raw = '[{"index": 1, "headline": "H", "summary": "S", "topic": "  Politics  "}]';
+    const results = parseBatchResponse(raw);
+    expect(results[0].topic).toBe("politics");
   });
 });
 

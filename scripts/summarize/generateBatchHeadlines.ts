@@ -1,3 +1,5 @@
+import { TOPICS_ALL as VALID_TOPICS, Topic } from "../../lib/topics";
+
 const GEMINI_GENERATE_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
@@ -10,9 +12,6 @@ export interface StoryForBatch {
   id: string;
   articles: ArticleForSummary[];
 }
-
-const VALID_TOPICS = ["politics", "business", "science-tech", "sports", "entertainment", "other"] as const;
-type Topic = (typeof VALID_TOPICS)[number];
 
 export interface StorySummary {
   headline: string;
@@ -44,7 +43,7 @@ export function buildBatchPrompt(stories: StoryForBatch[]): string {
     storyBlocks,
     "",
     "Respond with strict JSON only: a JSON array with exactly one object per story:",
-    '[{"index": 1, "headline": "...", "summary": "...", "topic": "..."}, ...]',
+    '[{"index": 1, "headline": "...", "summary": "...", "topic": "..."}, {"index": 2, "headline": "...", "summary": "...", "topic": "..."}]',
     "index: the Story number above (1-based), matched exactly.",
     "headline: a neutral, factual headline under 15 words, not copied verbatim from any single outlet.",
     "summary: one neutral sentence describing what happened, under 30 words.",
@@ -69,7 +68,13 @@ export function parseBatchResponse(raw: string): BatchSummaryResult[] {
       typeof item?.headline === "string" &&
       typeof item?.summary === "string"
     ) {
-      const topic = VALID_TOPICS.includes(item?.topic) ? (item.topic as Topic) : null;
+      const rawTopic = typeof item?.topic === "string" ? item.topic.trim().toLowerCase() : null;
+      const topic = VALID_TOPICS.includes(rawTopic as Topic) ? (rawTopic as Topic) : null;
+      if (item?.topic != null && topic === null) {
+        console.error(
+          `Batch response gave an unrecognized topic ${JSON.stringify(item.topic)} for index ${item?.index}`
+        );
+      }
       results.push({ index: item.index, headline: item.headline, summary: item.summary, topic });
     }
   }
