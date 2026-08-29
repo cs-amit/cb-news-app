@@ -30,10 +30,13 @@ const NOTIFICATION_PROMPT_DISMISSED_KEY = "notificationPromptDismissed";
 const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
 const UPGRADE_PROMPT_DISMISSED_KEY = "upgradePromptDismissed";
 
+const TOPICS = ["politics", "business", "science-tech", "sports", "entertainment"] as const;
+
 export default function FeedScreen() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
@@ -65,11 +68,12 @@ export default function FeedScreen() {
   }
 
   useEffect(() => {
-    fetchRecentStories(supabase)
+    setLoading(true);
+    fetchRecentStories(supabase, selectedTopic ?? undefined)
       .then(setStories)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedTopic]);
 
   useEffect(() => {
     getUserId(supabase)
@@ -337,6 +341,30 @@ export default function FeedScreen() {
               {profile.streak_count}-day streak · {profile.sides_seen_total} sides seen
             </Text>
           ) : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16, paddingTop: 0 }}>
+            <Pressable onPress={() => setSelectedTopic(null)}>
+              <Text
+                style={{
+                  fontFamily: selectedTopic === null ? fonts.uiSemiBold : fonts.ui,
+                  color: selectedTopic === null ? colors.primary : colors.textSecondary,
+                }}
+              >
+                All
+              </Text>
+            </Pressable>
+            {TOPICS.map((t) => (
+              <Pressable key={t} onPress={() => setSelectedTopic(t)}>
+                <Text
+                  style={{
+                    fontFamily: selectedTopic === t ? fonts.uiSemiBold : fonts.ui,
+                    color: selectedTopic === t ? colors.primary : colors.textSecondary,
+                  }}
+                >
+                  {t}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <Pressable onPress={() => router.push("/methodology")} style={{ padding: 16 }}>
             <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>How are these badges calculated? Methodology →</Text>
           </Pressable>

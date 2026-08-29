@@ -26,10 +26,11 @@ import {
 function makeMockSupabase(result: { data: any; error: any }) {
   const limit = jest.fn().mockResolvedValue(result);
   const order = jest.fn().mockReturnValue({ limit });
-  const not = jest.fn().mockReturnValue({ order });
+  const eq = jest.fn().mockReturnValue({ order });
+  const not = jest.fn().mockReturnValue({ order, eq });
   const select = jest.fn().mockReturnValue({ not });
   const from = jest.fn().mockReturnValue({ select });
-  return { client: { from } as any, from, select, not, order, limit };
+  return { client: { from } as any, from, select, not, eq, order, limit };
 }
 
 describe("fetchRecentStories", () => {
@@ -59,6 +60,18 @@ describe("fetchRecentStories", () => {
   it("throws when Supabase returns an error", async () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchRecentStories(client)).rejects.toThrow("Failed to fetch stories: boom");
+  });
+
+  it("filters by topic when a topic is provided", async () => {
+    const { client, eq } = makeMockSupabase({ data: [], error: null });
+    await fetchRecentStories(client, "politics");
+    expect(eq).toHaveBeenCalledWith("topic", "politics");
+  });
+
+  it("does not filter by topic when none is provided", async () => {
+    const { client, eq } = makeMockSupabase({ data: [], error: null });
+    await fetchRecentStories(client);
+    expect(eq).not.toHaveBeenCalled();
   });
 });
 

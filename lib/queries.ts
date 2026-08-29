@@ -5,17 +5,19 @@ import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
 import { PollResponseValue } from "./polls";
 import { computeDrift, PollResponseForDrift } from "./compassDrift";
 
-export async function fetchRecentStories(supabase: SupabaseClient): Promise<Story[]> {
-  const { data, error } = await supabase
+export async function fetchRecentStories(supabase: SupabaseClient, topic?: string): Promise<Story[]> {
+  let query = supabase
     .from("stories")
     .select("id, canonical_headline, summary, first_seen_at")
     // Only surface stories that already have a generated headline. Headline
     // generation is rate-limited (~20 Gemini requests/day), so headline-less
     // stories are created faster than they can be labelled; without this
     // filter the newest 50 stories are almost all "Untitled story".
-    .not("canonical_headline", "is", null)
-    .order("first_seen_at", { ascending: false })
-    .limit(50);
+    .not("canonical_headline", "is", null);
+  if (topic) {
+    query = query.eq("topic", topic);
+  }
+  const { data, error } = await query.order("first_seen_at", { ascending: false }).limit(50);
   if (error) throw new Error(`Failed to fetch stories: ${error.message}`);
   return data ?? [];
 }
