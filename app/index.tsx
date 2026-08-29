@@ -24,6 +24,7 @@ import {
   scheduleDailyDigest,
 } from "../lib/notifications";
 import { buildDailyDigestCopy } from "../lib/notificationCopy";
+import { colors, fonts } from "../lib/theme";
 
 const NOTIFICATION_PROMPT_DISMISSED_KEY = "notificationPromptDismissed";
 const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
@@ -258,7 +259,7 @@ export default function FeedScreen() {
   }
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-  if (error) return <Text style={{ padding: 16 }}>Couldn't load stories: {error}</Text>;
+  if (error) return <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>Couldn't load stories: {error}</Text>;
 
   return (
     <FlatList
@@ -267,24 +268,24 @@ export default function FeedScreen() {
       ListHeaderComponent={
         <View>
           {showUpgradePrompt ? (
-            <View style={{ padding: 16, backgroundColor: "#f5f5f5" }}>
-              <Text>
+            <View style={{ padding: 16, backgroundColor: colors.surfaceSubtle }}>
+              <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>
                 Nice, a {profile?.streak_count}-day streak! Save your progress so it's not lost if
                 you reinstall.
               </Text>
               <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
                 <Pressable onPress={() => router.push("/upgrade")}>
-                  <Text style={{ color: "#0066cc", fontWeight: "600" }}>Add email</Text>
+                  <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Add email</Text>
                 </Pressable>
                 <Pressable onPress={handleDismissUpgradePrompt}>
-                  <Text style={{ color: "#777" }}>Maybe later</Text>
+                  <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>Maybe later</Text>
                 </Pressable>
               </View>
             </View>
           ) : null}
           {showHandleRecovery ? (
-            <View style={{ padding: 16, backgroundColor: "#f5f5f5" }}>
-              <Text>
+            <View style={{ padding: 16, backgroundColor: colors.surfaceSubtle }}>
+              <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>
                 Your email is confirmed. Pick a handle to finish setting up sharing and your
                 public profile.
               </Text>
@@ -296,17 +297,19 @@ export default function FeedScreen() {
                 style={{
                   marginTop: 8,
                   borderWidth: 1,
-                  borderColor: "#ccc",
+                  borderColor: colors.border,
                   borderRadius: 4,
                   padding: 12,
+                  fontFamily: fonts.ui,
+                  color: colors.textPrimary,
                 }}
               />
               {recoveryError ? (
-                <Text style={{ marginTop: 4, color: "#a00" }}>{recoveryError}</Text>
+                <Text style={{ marginTop: 4, color: colors.red, fontFamily: fonts.ui }}>{recoveryError}</Text>
               ) : null}
               <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
                 <Pressable onPress={handleClaimRecoveryHandle} disabled={recoverySubmitting}>
-                  <Text style={{ color: "#0066cc", fontWeight: "600" }}>
+                  <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>
                     {recoverySubmitting ? "Saving..." : "Save handle"}
                   </Text>
                 </Pressable>
@@ -314,30 +317,30 @@ export default function FeedScreen() {
             </View>
           ) : null}
           {showNotificationPrompt ? (
-            <View style={{ padding: 16, backgroundColor: "#f5f5f5" }}>
-              <Text>
+            <View style={{ padding: 16, backgroundColor: colors.surfaceSubtle }}>
+              <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>
                 Get a daily digest of today's top story and who's silent on it.
               </Text>
               <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
                 <Pressable onPress={handleEnableNotifications}>
-                  <Text style={{ color: "#0066cc", fontWeight: "600" }}>Turn on</Text>
+                  <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Turn on</Text>
                 </Pressable>
                 <Pressable onPress={handleDismissNotificationPrompt}>
-                  <Text style={{ color: "#777" }}>No thanks</Text>
+                  <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>No thanks</Text>
                 </Pressable>
               </View>
             </View>
           ) : null}
           {profile && profile.streak_count > 0 ? (
-            <Text style={{ padding: 16, paddingBottom: 0, fontWeight: "600" }}>
+            <Text style={{ padding: 16, paddingBottom: 0, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
               {profile.streak_count}-day streak · {profile.sides_seen_total} sides seen
             </Text>
           ) : null}
           <Pressable onPress={() => router.push("/methodology")} style={{ padding: 16 }}>
-            <Text style={{ color: "#0066cc" }}>How are these badges calculated? Methodology →</Text>
+            <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>How are these badges calculated? Methodology →</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/quiz")} style={{ padding: 16, paddingTop: 0 }}>
-            <Text style={{ color: "#0066cc" }}>
+            <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>
               {profile?.compass_quiz_taken_at
                 ? "Your compass position →"
                 : "Where do you stand? Take the compass quiz →"}
@@ -345,7 +348,7 @@ export default function FeedScreen() {
           </Pressable>
           {ownHandle ? (
             <Pressable onPress={() => router.push(`/profile/${ownHandle}`)} style={{ padding: 16, paddingTop: 0 }}>
-              <Text style={{ color: "#0066cc" }}>My profile →</Text>
+              <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>My profile →</Text>
             </Pressable>
           ) : null}
         </View>
@@ -353,12 +356,12 @@ export default function FeedScreen() {
       renderItem={({ item }) => (
         <Pressable
           onPress={() => router.push(`/story/${item.id}`)}
-          style={{ padding: 16, borderBottomWidth: 1, borderColor: "#eee" }}
+          style={{ padding: 16, borderBottomWidth: 1, borderColor: colors.border }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "600" }}>
+          <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
             {item.canonical_headline ?? "Untitled story"}
           </Text>
-          {item.summary ? <Text style={{ marginTop: 4, color: "#555" }}>{item.summary}</Text> : null}
+          {item.summary ? <Text style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}>{item.summary}</Text> : null}
           {repostsListId ? (
             <Pressable
               onPress={(e) => {
@@ -367,14 +370,14 @@ export default function FeedScreen() {
               }}
               style={{ marginTop: 6 }}
             >
-              <Text style={{ fontSize: 12, color: "#0066cc" }}>Repost to my profile</Text>
+              <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.ui }}>Repost to my profile</Text>
             </Pressable>
           ) : null}
         </Pressable>
       )}
       ListEmptyComponent={
         <View style={{ padding: 16 }}>
-          <Text>No stories yet.</Text>
+          <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>No stories yet.</Text>
         </View>
       }
     />
