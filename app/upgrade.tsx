@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { isValidHandle, savePendingHandle } from "../lib/handle";
+import { colors, fonts } from "../lib/theme";
 
 export default function UpgradeScreen() {
   const router = useRouter();
@@ -44,9 +45,11 @@ export default function UpgradeScreen() {
 
   if (status === "sent") {
     return (
-      <View style={{ padding: 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: "600" }}>Check your email</Text>
-        <Text style={{ marginTop: 8, color: "#555" }}>
+      <View style={{ padding: 16, backgroundColor: colors.background, flex: 1 }}>
+        <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
+          Check your email
+        </Text>
+        <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
           Tap the confirmation link we sent to {email.trim()}, then reopen Sourced. Your streak,
           reading history, and new handle carry over exactly as they are.
         </Text>
@@ -55,9 +58,11 @@ export default function UpgradeScreen() {
   }
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ fontSize: 16, fontWeight: "600" }}>Save your progress</Text>
-      <Text style={{ marginTop: 8, color: "#555" }}>
+    <View style={{ padding: 16, backgroundColor: colors.background, flex: 1 }}>
+      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
+        Save your progress
+      </Text>
+      <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
         Add an email so your streak and reading history aren't lost if you reinstall, and pick a
         handle so you can share lists and your profile publicly.
       </Text>
@@ -67,26 +72,44 @@ export default function UpgradeScreen() {
         placeholder="you@example.com"
         autoCapitalize="none"
         keyboardType="email-address"
-        style={{ marginTop: 16, borderWidth: 1, borderColor: "#ccc", borderRadius: 4, padding: 12 }}
+        style={{
+          marginTop: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 4,
+          padding: 12,
+          fontFamily: fonts.ui,
+          color: colors.textPrimary,
+        }}
       />
       <TextInput
         value={handle}
         onChangeText={setHandle}
         placeholder="handle (lowercase, 3-20 chars)"
         autoCapitalize="none"
-        style={{ marginTop: 12, borderWidth: 1, borderColor: "#ccc", borderRadius: 4, padding: 12 }}
+        style={{
+          marginTop: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 4,
+          padding: 12,
+          fontFamily: fonts.ui,
+          color: colors.textPrimary,
+        }}
       />
       {status === "error" ? (
-        <Text style={{ marginTop: 8, color: "#a00" }}>Couldn't save that: {errorMessage}</Text>
+        <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.red }}>
+          Couldn't save that: {errorMessage}
+        </Text>
       ) : null}
       <View style={{ flexDirection: "row", marginTop: 16, gap: 16 }}>
         <Pressable onPress={handleSubmit} disabled={status === "submitting"}>
-          <Text style={{ color: "#0066cc", fontWeight: "600" }}>
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.primary }}>
             {status === "submitting" ? "Sending..." : "Send confirmation link"}
           </Text>
         </Pressable>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: "#777" }}>Maybe later</Text>
+          <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary }}>Maybe later</Text>
         </Pressable>
       </View>
     </View>

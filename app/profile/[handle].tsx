@@ -10,6 +10,7 @@ import {
   PublicProfile,
   ListRow,
 } from "../../lib/queries";
+import { colors, fonts } from "../../lib/theme";
 
 export default function ProfileScreen() {
   const { handle } = useLocalSearchParams<{ handle: string }>();
@@ -49,22 +50,29 @@ export default function ProfileScreen() {
   }, [handle]);
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-  if (error || !profile) return <Text style={{ padding: 16 }}>{error ?? "Profile not found."}</Text>;
+  if (error || !profile)
+    return (
+      <Text style={{ padding: 16, fontFamily: fonts.ui, color: colors.textPrimary }}>
+        {error ?? "Profile not found."}
+      </Text>
+    );
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "700" }}>@{profile.handle}</Text>
+    <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
+      <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>
+        @{profile.handle}
+      </Text>
       {profile.compass_position !== null ? (
-        <Text style={{ marginTop: 4, color: "#555" }}>
+        <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textSecondary }}>
           Compass position: {Math.round(profile.compass_position)}
         </Text>
       ) : null}
       {isOwnProfile ? (
         <Pressable onPress={() => router.push("/quiz")} style={{ marginTop: 8 }}>
-          <Text style={{ color: "#0066cc" }}>Retake the quiz →</Text>
+          <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz →</Text>
         </Pressable>
       ) : null}
-      <Text style={{ marginTop: 20, fontWeight: "600" }}>
+      <Text style={{ marginTop: 20, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
         {isOwnProfile ? "Your lists" : "Public lists"}
       </Text>
       <FlatList
@@ -73,14 +81,22 @@ export default function ProfileScreen() {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/list/${item.id}`)}
-            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}
+            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}
           >
-            <Text style={{ fontWeight: "500" }}>{item.name}</Text>
-            {item.description ? <Text style={{ color: "#777" }}>{item.description}</Text> : null}
-            {!item.is_public ? <Text style={{ fontSize: 11, color: "#a00" }}>Private</Text> : null}
+            <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>{item.name}</Text>
+            {item.description ? (
+              <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary }}>{item.description}</Text>
+            ) : null}
+            {!item.is_public ? (
+              <Text style={{ fontSize: 11, fontFamily: fonts.ui, color: colors.red }}>Private</Text>
+            ) : null}
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={{ color: "#777", marginTop: 8 }}>No lists yet.</Text>}
+        ListEmptyComponent={
+          <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary, marginTop: 8 }}>
+            No lists yet.
+          </Text>
+        }
       />
     </View>
   );
