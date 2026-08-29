@@ -27,13 +27,39 @@ describe("buildBatchPrompt", () => {
   });
 });
 
+describe("buildBatchPrompt topic classification", () => {
+  it("asks for a topic field with the fixed allowed values", () => {
+    const prompt = buildBatchPrompt([{ id: "s1", articles: [{ title: "T", outletName: "O" }] }]);
+    expect(prompt).toContain("topic");
+    expect(prompt).toContain("politics");
+    expect(prompt).toContain("business");
+    expect(prompt).toContain("science-tech");
+    expect(prompt).toContain("sports");
+    expect(prompt).toContain("entertainment");
+  });
+});
+
+describe("parseBatchResponse topic classification", () => {
+  it("parses a topic field when present", () => {
+    const raw = '[{"index": 1, "headline": "H", "summary": "S", "topic": "politics"}]';
+    const results = parseBatchResponse(raw);
+    expect(results[0].topic).toBe("politics");
+  });
+
+  it("falls back to null when topic is missing or invalid", () => {
+    const raw = '[{"index": 1, "headline": "H", "summary": "S", "topic": "not-a-real-topic"}]';
+    const results = parseBatchResponse(raw);
+    expect(results[0].topic).toBeNull();
+  });
+});
+
 describe("parseBatchResponse", () => {
   it("parses a JSON array embedded in surrounding text", () => {
     const raw =
       'Sure, here it is:\n[{"index": 1, "headline": "H1", "summary": "S1"}, {"index": 2, "headline": "H2", "summary": "S2"}]';
     expect(parseBatchResponse(raw)).toEqual([
-      { index: 1, headline: "H1", summary: "S1" },
-      { index: 2, headline: "H2", summary: "S2" },
+      { index: 1, headline: "H1", summary: "S1", topic: null },
+      { index: 2, headline: "H2", summary: "S2", topic: null },
     ]);
   });
 
@@ -43,7 +69,7 @@ describe("parseBatchResponse", () => {
 
   it("drops malformed entries but keeps valid ones", () => {
     const raw = '[{"index": 1, "headline": "H1", "summary": "S1"}, {"index": "oops"}]';
-    expect(parseBatchResponse(raw)).toEqual([{ index: 1, headline: "H1", summary: "S1" }]);
+    expect(parseBatchResponse(raw)).toEqual([{ index: 1, headline: "H1", summary: "S1", topic: null }]);
   });
 
   it("throws when every entry is malformed", () => {
@@ -85,8 +111,8 @@ describe("generateBatchHeadlines", () => {
       "fake-key"
     );
 
-    expect(result.get("story-a")).toEqual({ headline: "H1", summary: "S1" });
-    expect(result.get("story-b")).toEqual({ headline: "H2", summary: "S2" });
+    expect(result.get("story-a")).toEqual({ headline: "H1", summary: "S1", topic: null });
+    expect(result.get("story-b")).toEqual({ headline: "H2", summary: "S2", topic: null });
   });
 
   it("returns an empty map without calling fetch when given no stories", async () => {

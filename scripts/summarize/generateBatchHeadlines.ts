@@ -11,15 +11,20 @@ export interface StoryForBatch {
   articles: ArticleForSummary[];
 }
 
+const VALID_TOPICS = ["politics", "business", "science-tech", "sports", "entertainment", "other"] as const;
+type Topic = (typeof VALID_TOPICS)[number];
+
 export interface StorySummary {
   headline: string;
   summary: string;
+  topic: Topic | null;
 }
 
 interface BatchSummaryResult {
   index: number;
   headline: string;
   summary: string;
+  topic: Topic | null;
 }
 
 export function buildBatchPrompt(stories: StoryForBatch[]): string {
@@ -39,10 +44,11 @@ export function buildBatchPrompt(stories: StoryForBatch[]): string {
     storyBlocks,
     "",
     "Respond with strict JSON only: a JSON array with exactly one object per story:",
-    '[{"index": 1, "headline": "...", "summary": "..."}, {"index": 2, "headline": "...", "summary": "..."}]',
+    '[{"index": 1, "headline": "...", "summary": "...", "topic": "..."}, ...]',
     "index: the Story number above (1-based), matched exactly.",
     "headline: a neutral, factual headline under 15 words, not copied verbatim from any single outlet.",
     "summary: one neutral sentence describing what happened, under 30 words.",
+    `topic: exactly one of: ${VALID_TOPICS.join(", ")}.`,
     `Include all ${stories.length} stories in the array, one object each.`,
   ].join("\n");
 }
@@ -63,7 +69,8 @@ export function parseBatchResponse(raw: string): BatchSummaryResult[] {
       typeof item?.headline === "string" &&
       typeof item?.summary === "string"
     ) {
-      results.push({ index: item.index, headline: item.headline, summary: item.summary });
+      const topic = VALID_TOPICS.includes(item?.topic) ? (item.topic as Topic) : null;
+      results.push({ index: item.index, headline: item.headline, summary: item.summary, topic });
     }
   }
   if (results.length === 0) {
@@ -101,7 +108,7 @@ export async function generateBatchHeadlines(
       console.error(`Batch response referenced out-of-range index ${result.index}`);
       continue;
     }
-    byId.set(story.id, { headline: result.headline, summary: result.summary });
+    byId.set(story.id, { headline: result.headline, summary: result.summary, topic: result.topic });
   }
   return byId;
 }
