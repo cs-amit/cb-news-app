@@ -283,15 +283,26 @@ export async function applyPollDrift(
   if (error) throw new Error(`Failed to fetch compass state: ${error.message}`);
   if (!data || data.compass_position === null) return;
 
-  const next = computeDrift(
-    {
-      position: data.compass_position,
-      weekStartedAt: data.compass_week_started_at ?? new Date(0).toISOString(),
-      weekDelta: data.compass_week_delta,
-    },
-    response,
-    new Date()
-  );
+  // `compass_position` / `compass_week_delta` are `numeric` columns. PostgREST
+  // currently serializes them as JSON numbers, but a future config could switch
+  // to strings; coerce defensively so `state.position + cappedDelta` can never
+  // string-concatenate. The null guard above must stay ahead of this —
+  // `Number(null)` is `0`.
+  const position = Number(data.compass_position);
+  const weekDelta = Number(data.compass_week_delta);
+  const weekStartedAt = data.compass_week_started_at ?? new Date(0).toISOString();
+
+  const next = computeDrift({ position, weekStartedAt, weekDelta }, response, new Date());
+
+  // The weekly cap means most poll answers produce no change once it's
+  // exhausted — skip the pointless UPDATE round trip in that case.
+  if (
+    next.position === position &&
+    next.weekDelta === weekDelta &&
+    next.weekStartedAt === weekStartedAt
+  ) {
+    return;
+  }
 
   const { error: updateError } = await supabase
     .from("profiles")

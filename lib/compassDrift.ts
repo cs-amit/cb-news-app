@@ -25,7 +25,8 @@ const TARGETS: Record<PollResponseForDrift, number> = {
 export function computeDrift(state: DriftState, response: PollResponseForDrift, now: Date): DriftState {
   const nowMs = now.getTime();
   const weekStartMs = new Date(state.weekStartedAt).getTime();
-  const weekExpired = !state.weekStartedAt || nowMs - weekStartMs >= WEEK_MS;
+  const weekExpired =
+    !state.weekStartedAt || Number.isNaN(weekStartMs) || nowMs - weekStartMs >= WEEK_MS;
 
   const weekStartedAt = weekExpired ? now.toISOString() : state.weekStartedAt;
   const weekDeltaSoFar = weekExpired ? 0 : state.weekDelta;

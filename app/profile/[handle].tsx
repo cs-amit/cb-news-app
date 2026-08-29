@@ -56,7 +56,7 @@ export default function ProfileScreen() {
       <Text style={{ fontSize: 20, fontWeight: "700" }}>@{profile.handle}</Text>
       {profile.compass_position !== null ? (
         <Text style={{ marginTop: 4, color: "#555" }}>
-          Compass position: {profile.compass_position}
+          Compass position: {Math.round(profile.compass_position)}
         </Text>
       ) : null}
       {isOwnProfile ? (

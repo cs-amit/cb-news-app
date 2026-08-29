@@ -996,6 +996,14 @@ describe("applyPollDrift", () => {
     expect(eqUpdate).toHaveBeenCalledWith("id", "user-1");
   });
 
+  it("does nothing when there is no profile row at all", async () => {
+    const { client, update } = makeMock(null);
+
+    await applyPollDrift(client, "user-1", "friendly");
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("does nothing if the profile has never taken the quiz (position is null)", async () => {
     const { client, update } = makeMock({
       compass_position: null,

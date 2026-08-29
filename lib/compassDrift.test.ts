@@ -40,6 +40,14 @@ describe("computeDrift", () => {
     expect(result.weekDelta).toBe(3);
   });
 
+  it("treats an unparseable week-start timestamp as an expired week (fresh start)", () => {
+    const corrupt: DriftState = { position: 3, weekStartedAt: "not-a-date", weekDelta: 3 };
+    const result = computeDrift(corrupt, "friendly", START_OF_WEEK);
+    expect(result.weekStartedAt).toBe(START_OF_WEEK.toISOString());
+    expect(result.weekDelta).toBeCloseTo(1.94, 2); // 0.02 * (100 - 3), fresh cap despite weekDelta was 3
+    expect(result.position).toBeGreaterThan(3);
+  });
+
   it("resets the weekly cap once a new week has started", () => {
     const staleWeek = new Date(START_OF_WEEK.getTime() - 8 * 24 * 60 * 60 * 1000);
     const atCap = stateAt(3, staleWeek, 3);
