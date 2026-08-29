@@ -62,6 +62,32 @@ describe("fillMissingHeadlines", () => {
     expect(updated).toBe(2);
   });
 
+  it("saves the classified topic alongside the headline and summary", async () => {
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "select")) {
+        return { data: [{ id: "story-1" }], error: null };
+      }
+      if (q.table === "articles") {
+        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        return { data: null, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const generateFn = jest
+      .fn()
+      .mockResolvedValue(new Map([["story-1", { headline: "H1", summary: "S1", topic: "politics" }]]));
+
+    const updated = await fillMissingHeadlines(client, generateFn);
+
+    expect(updated).toBe(1);
+    const updateQuery = queries.find((q) => q.table === "stories" && has(q.calls, "update"));
+    const updateCall = updateQuery!.calls.find((c) => c.method === "update")!;
+    expect(updateCall.args[0]).toEqual(expect.objectContaining({ topic: "politics" }));
+  });
+
   it("returns 0 and does not throw when the batch call fails (quota exhaustion is normal)", async () => {
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     const { client } = makeMockSupabase((q) => {

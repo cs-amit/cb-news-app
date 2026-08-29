@@ -63,7 +63,7 @@ export async function fillMissingHeadlines(
     }
     const { error: updateError } = await supabase
       .from("stories")
-      .update({ canonical_headline: result.headline, summary: result.summary })
+      .update({ canonical_headline: result.headline, summary: result.summary, topic: result.topic })
       .eq("id", story.id);
     if (updateError) {
       console.error(`Failed to save headline for story ${story.id}: ${updateError.message}`);
