@@ -16,7 +16,6 @@ export const colors = {
 
 export const fonts = {
   headline: "SourceSerif4_700Bold",
-  headlineRegular: "SourceSerif4_600SemiBold",
   ui: "Sora_400Regular",
   uiSemiBold: "Sora_600SemiBold",
 } as const;

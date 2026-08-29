@@ -110,7 +110,7 @@ export default function StoryScreen() {
   const framingSpectrum = pickFramingSpectrum(articles);
 
   return (
-    <ScrollView style={{ padding: 16 }}>
+    <ScrollView style={{ padding: 16, backgroundColor: colors.background }}>
       <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>
         {story.canonical_headline}
       </Text>
@@ -304,7 +304,7 @@ export default function StoryScreen() {
                         paddingHorizontal: 10,
                       }}
                     >
-                      <Text style={{ fontSize: 12, fontFamily: fonts.uiSemiBold, color: "#FFFFFF" }}>
+                      <Text style={{ fontSize: 12, fontFamily: fonts.uiSemiBold, color: colors.background }}>
                         {option}
                       </Text>
                     </Pressable>
@@ -348,7 +348,6 @@ export default function StoryScreen() {
                 <Text
                   style={{
                     fontSize: 11,
-                    fontWeight: "700",
                     fontFamily: fonts.uiSemiBold,
                     color: verdictColors[factCheck.verdict as Verdict]?.text ?? colors.textSecondary,
                   }}

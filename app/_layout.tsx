@@ -1,17 +1,16 @@
 import { Stack } from "expo-router";
-import { useFonts, SourceSerif4_600SemiBold, SourceSerif4_700Bold } from "@expo-google-fonts/source-serif-4";
+import { useFonts, SourceSerif4_700Bold } from "@expo-google-fonts/source-serif-4";
 import { Sora_400Regular, Sora_600SemiBold } from "@expo-google-fonts/sora";
 import { ActivityIndicator, View } from "react-native";
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    SourceSerif4_600SemiBold,
+  const [fontsLoaded, fontError] = useFonts({
     SourceSerif4_700Bold,
     Sora_400Regular,
     Sora_600SemiBold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator />

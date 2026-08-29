@@ -263,6 +263,7 @@ export default function FeedScreen() {
 
   return (
     <FlatList
+      style={{ backgroundColor: colors.background }}
       data={stories}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
