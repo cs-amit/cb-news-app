@@ -6,7 +6,9 @@
 
 ## 1. Product Name
 
-**Sourced.** Chosen over Verity, Unspun, and Baseline. Verity was ruled out specifically because `verity.news` (also `improvethenews.org`) is a live, very close competitor — ML-driven bias detection across 5,000+ sources, rated Center/Least-biased by AllSides and MBFC. No naming collision found for "Sourced" in the media-bias/fact-check category. `app.json`'s `name`/`slug` still need updating from the `cb_app_tmp` placeholder as part of implementation.
+**Sourced.** Chosen over Verity, Unspun, and Baseline. Verity was ruled out specifically because `verity.news` (also `improvethenews.org`) is a live, very close competitor — ML-driven bias detection across 5,000+ sources, rated Center/Least-biased by AllSides and MBFC. No naming collision found for "Sourced" in the media-bias/fact-check category. `app.json`'s `name` is set to "Sourced" as part of implementation.
+
+**2026-08-30 note:** `app.json`'s `slug` stays `cb_app_tmp` (not `sourced`). The EAS project (`extra.eas.projectId` `5f349431-…`) was registered under that slug before this spec, and EAS requires `slug` to match the linked project or every build fails ("slug does not match"). The slug is only the Expo project identifier (dashboard/build URLs) — never user-facing; the device shows `name`. Renaming would mean re-registering the EAS project. Revisit only if a fresh EAS project is ever created.
 
 ## 2. Aesthetic Direction
 
