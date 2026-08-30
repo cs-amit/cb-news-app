@@ -12,7 +12,7 @@ New `lib/entities.ts`: `extractEntityKeys(text: string): string[]`.
 
 Tokenizes on whitespace/punctuation and keeps:
 - purely numeric tokens (ages, percentages, figures — e.g. "60", "9.26"), and
-- capitalized-word tokens longer than 2 characters, filtered against a small stopword list (sentence-initial common words like "The", "A", "Is").
+- capitalized-word tokens of 2+ characters, filtered against a small stopword list (sentence-initial common words like "The", "A", "Is", "To", "For"). The 2-char floor (not 3+) is deliberate: short ALL-CAPS state/party abbreviations ("UP", "US", "PM", "BJP") are exactly the kind of entity this needs to catch — the worked example above depends on "UP" surviving extraction.
 
 All returned tokens are lowercased before comparison so overlap checks are case-insensitive. No LLM call — this is a cheap, deterministic, synchronous function.
 
