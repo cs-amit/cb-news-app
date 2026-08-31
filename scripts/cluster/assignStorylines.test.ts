@@ -11,7 +11,7 @@ interface Query {
 }
 
 const CHAIN_METHODS = [
-  "select", "insert", "update", "is", "not", "eq", "gte", "in", "order", "limit", "single",
+  "select", "insert", "update", "is", "not", "eq", "gte", "in", "order", "limit", "range", "single",
 ];
 
 function has(calls: Call[], method: string, ...args: any[]): boolean {
@@ -242,5 +242,57 @@ describe("assignStorylines", () => {
     expect(payload.entity_keys.sort()).toEqual(["a", "b"]);
     expect(result.storiesAssigned).toBe(1);
     expect(result.storylinesCreated).toBe(1);
+  });
+
+  it("pages through the full open-storyline set instead of stopping at the first page", async () => {
+    const OPEN_STORYLINE_PAGE_SIZE = 500;
+    const page1 = Array.from({ length: OPEN_STORYLINE_PAGE_SIZE }, (_, i) => ({
+      id: `open-page1-${i}`,
+      storyline_id: `storyline-decoy-${i}`,
+      pooled_embedding: asPgVector(REP_LOW_COSINE_EMBEDDING), // cosine 0.6, always fails
+      entity_keys: [],
+      created_at: new Date().toISOString(),
+    }));
+    // Lives on page 2, past the OLD unpaginated default cap — only reachable if pagination works.
+    const page2 = [
+      {
+        id: "open-page2-0",
+        storyline_id: "storyline-page2-match",
+        pooled_embedding: asPgVector(REP_MATCH_EMBEDDING), // cosine 0.8, passes
+        entity_keys: ["up", "bus", "scheme"], // overlap 3, passes
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    const assignments: { table: string; payload: any; id: any }[] = [];
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "is", "storyline_id", null)) {
+        return { data: [CANDIDATE], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "not", "storyline_id", "is", null)) {
+        const rangeCall = q.calls.find((c) => c.method === "range")!;
+        const [offset] = rangeCall.args;
+        return { data: offset === 0 ? page1 : page2, error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        const payload = payloadOf(q.calls);
+        const idCall = q.calls.find((c) => c.method === "eq");
+        assignments.push({ table: "stories", payload, id: idCall?.args[1] });
+        return { data: null, error: null };
+      }
+      if (q.table === "storylines" && has(q.calls, "single")) {
+        return { data: { title: "Existing storyline title" }, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const result = await assignStorylines(client);
+
+    expect(assignments).toContainEqual({
+      table: "stories",
+      payload: { storyline_id: "storyline-page2-match" },
+      id: CANDIDATE.id,
+    });
+    expect(result).toEqual({ storiesAssigned: 1, storylinesCreated: 0 });
   });
 });

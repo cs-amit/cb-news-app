@@ -1,19 +1,28 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { parseEmbedding } from "./clusterStories";
 import { cosineSimilarity, overlapCount } from "./similarity";
+import { extractEntityKeys } from "../../lib/entities";
 
 // How many storyline-less headlined stories to consider per run. Not time-
 // windowed by created_at (unlike the article clusterer's candidate window):
-// ~17.9k stories already have canonical_headline set and predate this
-// feature, so a recency window would permanently exclude the entire
+// 709 stories already have canonical_headline set and predate this feature
+// (verified on prod), so a recency window would permanently exclude that
 // backlog. Capping by batch size instead lets the backlog clear
-// progressively (oldest first) across successive 2h cron ticks.
+// progressively (oldest first) — at 500/run this clears in about 2 runs.
 const STORYLINE_CANDIDATE_BATCH_SIZE = 500;
 
 // A storyline is "open" (eligible to receive a new story) if its most
 // recently created member story falls within this window. 240h (10 days)
 // matches the observed real-world span of the diagnosed example storyline.
 const STORYLINE_WINDOW_HOURS = 240;
+
+// Page size for fetching open storylines, and a hard safety ceiling across
+// all pages combined. Mirrors clusterStories.ts's anchor-fetching pattern:
+// a single unpaginated fetch relies on Supabase's undocumented default row
+// cap (1000), and that exact assumption silently truncated results in
+// production once the table outgrew it. Paginate instead.
+const OPEN_STORYLINE_PAGE_SIZE = 500;
+const OPEN_STORYLINE_SAFETY_CEILING = 5000;
 
 // Looser than the clusterer's mid threshold (0.78): storyline members are
 // related-but-distinct events (an announcement vs. a follow-up detail), not
@@ -54,7 +63,7 @@ async function computePooledFields(
 ): Promise<PooledFields | null> {
   const { data: articles, error } = await supabase
     .from("articles")
-    .select("embedding, entity_keys")
+    .select("title, embedding, entity_keys")
     .eq("story_id", storyId)
     .not("embedding", "is", null);
   if (error) {
@@ -65,20 +74,29 @@ async function computePooledFields(
 
   const embeddings: number[][] = [];
   const entityKeySet = new Set<string>();
-  for (const row of articles as { embedding: unknown; entity_keys: unknown }[]) {
+  for (const row of articles as { title: string; embedding: unknown; entity_keys: unknown }[]) {
     const embedding = parseEmbedding(row.embedding);
     if (embedding) embeddings.push(embedding);
-    for (const key of toEntityKeys(row.entity_keys)) entityKeySet.add(key);
+    // Articles ingested before entity_keys existed (or that otherwise never
+    // got it persisted) fall back to deriving it from the title here, so
+    // pre-existing clustered stories aren't permanently stuck with an empty
+    // entity signal once cached.
+    const keys = Array.isArray(row.entity_keys)
+      ? (row.entity_keys as string[])
+      : extractEntityKeys(row.title);
+    for (const key of keys) entityKeySet.add(key);
   }
   if (embeddings.length === 0) return null;
 
   const dim = embeddings[0].length;
   const mean = new Array(dim).fill(0);
+  let contributors = 0;
   for (const embedding of embeddings) {
     if (embedding.length !== dim) continue;
     for (let i = 0; i < dim; i++) mean[i] += embedding[i];
+    contributors += 1;
   }
-  for (let i = 0; i < dim; i++) mean[i] /= embeddings.length;
+  for (let i = 0; i < dim; i++) mean[i] /= contributors;
 
   return { embedding: mean, entityKeys: [...entityKeySet] };
 }
@@ -99,24 +117,47 @@ export async function assignStorylines(supabase: SupabaseClient): Promise<Assign
   if (!candidates || candidates.length === 0) return empty;
 
   const openCutoff = new Date(Date.now() - STORYLINE_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
-  const { data: openRows, error: openError } = await supabase
-    .from("stories")
-    .select("storyline_id, pooled_embedding, entity_keys, created_at")
-    .not("storyline_id", "is", null)
-    .gte("created_at", openCutoff)
-    .order("created_at", { ascending: false });
-  if (openError) {
-    throw new Error(`Failed to fetch open storylines: ${openError.message}`);
+  const openRows: {
+    id: string;
+    storyline_id: string;
+    pooled_embedding: unknown;
+    entity_keys: unknown;
+    created_at: string;
+  }[] = [];
+  let openOffset = 0;
+  while (true) {
+    const { data: page, error: openError } = await supabase
+      .from("stories")
+      .select("id, storyline_id, pooled_embedding, entity_keys, created_at")
+      .not("storyline_id", "is", null)
+      .gte("created_at", openCutoff)
+      .order("created_at", { ascending: false })
+      // created_at is not unique, so ties could otherwise be ordered
+      // differently between page requests and skip/duplicate rows across
+      // .range() boundaries. id breaks the tie deterministically.
+      .order("id")
+      .range(openOffset, openOffset + OPEN_STORYLINE_PAGE_SIZE - 1);
+    if (openError) {
+      throw new Error(`Failed to fetch open storylines: ${openError.message}`);
+    }
+    openRows.push(...(page ?? []));
+
+    if ((page?.length ?? 0) < OPEN_STORYLINE_PAGE_SIZE) break;
+    if (openRows.length >= OPEN_STORYLINE_SAFETY_CEILING) {
+      console.warn(
+        `Open storyline set hit the ${OPEN_STORYLINE_SAFETY_CEILING}-row safety ceiling; ` +
+          `older open storylines in the ${STORYLINE_WINDOW_HOURS}h window were not ` +
+          `considered for matching. Investigate storyline volume growth.`
+      );
+      break;
+    }
+    openOffset += OPEN_STORYLINE_PAGE_SIZE;
   }
 
   // Rows arrive most-recent-first, so the first row seen per storyline_id is
   // that storyline's representative (its latest member story).
   const representatives = new Map<string, PooledFields>();
-  for (const row of (openRows ?? []) as {
-    storyline_id: string;
-    pooled_embedding: unknown;
-    entity_keys: unknown;
-  }[]) {
+  for (const row of openRows) {
     if (representatives.has(row.storyline_id)) continue;
     const embedding = parseEmbedding(row.pooled_embedding);
     if (!embedding) continue;
