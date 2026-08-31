@@ -1,7 +1,9 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { clusterBySimilarity, EmbeddedArticle } from "./similarity";
+import { extractEntityKeys } from "../../lib/entities";
 
-const SIMILARITY_THRESHOLD = 0.86;
+const SIMILARITY_THRESHOLD_HIGH = 0.86;
+const SIMILARITY_THRESHOLD_MID = 0.78;
 
 // How far back to look for articles that still need clustering.
 const UNCLUSTERED_WINDOW_HOURS = 48;
@@ -111,7 +113,8 @@ export async function clusterUnclusteredArticles(
       );
       continue;
     }
-    newEmbedded.push({ id: article.id, embedding });
+    const entityKeys = extractEntityKeys(article.title);
+    newEmbedded.push({ id: article.id, embedding, entityKeys });
 
     // Persist the embedding. These are load-bearing: they are read back as
     // anchors on later runs, so a silent write failure would quietly degrade
@@ -119,7 +122,7 @@ export async function clusterUnclusteredArticles(
     // ingest script uses) — the in-memory embedding is still valid for this run.
     const { error: embeddingWriteError } = await supabase
       .from("articles")
-      .update({ embedding })
+      .update({ embedding, entity_keys: entityKeys })
       .eq("id", article.id);
     if (embeddingWriteError) {
       console.error(
@@ -145,12 +148,12 @@ export async function clusterUnclusteredArticles(
     Date.now() - ANCHOR_WINDOW_HOURS * 60 * 60 * 1000
   ).toISOString();
 
-  const anchorRows: { id: string; story_id: string; embedding: unknown }[] = [];
+  const anchorRows: { id: string; story_id: string; embedding: unknown; entity_keys: unknown }[] = [];
   let anchorOffset = 0;
   while (true) {
     const { data: page, error: anchorError } = await supabase
       .from("articles")
-      .select("id, story_id, embedding")
+      .select("id, story_id, embedding, entity_keys")
       .not("story_id", "is", null)
       .not("embedding", "is", null)
       .gte("created_at", anchorCutoff)
@@ -181,13 +184,14 @@ export async function clusterUnclusteredArticles(
   const expectedDim = newEmbedded[0].embedding.length;
   const anchorStoryById = new Map<string, string>();
   const anchorEmbedded: EmbeddedArticle[] = [];
-  for (const row of anchorRows as { id: string; story_id: string; embedding: unknown }[]) {
+  for (const row of anchorRows) {
     const embedding = parseEmbedding(row.embedding);
     // cosineSimilarity throws on a length mismatch, so drop anything that
     // isn't the current embedding dimension rather than killing the run.
     if (!embedding || embedding.length !== expectedDim || !row.story_id) continue;
+    const entityKeys = Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : [];
     anchorStoryById.set(row.id, row.story_id);
-    anchorEmbedded.push({ id: row.id, embedding });
+    anchorEmbedded.push({ id: row.id, embedding, entityKeys });
   }
 
   // Anchors go first: clusterBySimilarity is greedy single-link and places an
@@ -195,7 +199,8 @@ export async function clusterUnclusteredArticles(
   // anchors makes "join an existing story" win over "start a new one".
   const clusters = clusterBySimilarity(
     [...anchorEmbedded, ...newEmbedded],
-    SIMILARITY_THRESHOLD
+    SIMILARITY_THRESHOLD_HIGH,
+    SIMILARITY_THRESHOLD_MID
   );
 
   let clustersCreated = 0;

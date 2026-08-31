@@ -5,6 +5,7 @@ import { embedText } from "./embed";
 import { fillMissingHeadlines } from "../summarize/fillMissingHeadlines";
 import { generateBatchHeadlines } from "../summarize/generateBatchHeadlines";
 import { flagStoryConflicts } from "../conflict/flagStoryConflicts";
+import { assignStorylines } from "./assignStorylines";
 
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -46,6 +47,22 @@ async function main() {
     generateBatchHeadlines(batch, geminiKey)
   );
   console.log(`Generated headlines for ${headlineCount} stories.`);
+
+  // Storyline assignment needs canonical_headline (to title a newly-founded
+  // storyline), so it runs after headline generation. Same non-fatal
+  // tolerance as conflict flagging above — this is an enhancement layered on
+  // the core pipeline, not something that should ever fail the run.
+  try {
+    const { storiesAssigned, storylinesCreated } = await assignStorylines(supabase);
+    console.log(
+      `Assigned ${storiesAssigned} storie(s) to storylines, ${storylinesCreated} new storyline(s) created.`
+    );
+  } catch (err) {
+    console.error(
+      "Failed to assign storylines; continuing:",
+      err instanceof Error ? err.message : err
+    );
+  }
 }
 
 main().catch((err) => {
