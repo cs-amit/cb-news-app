@@ -62,6 +62,7 @@ function makeMockSupabase(resolve: (q: Query) => any) {
 const ANCHOR_EMBEDDING = [1, 0, 0];
 const SIMILAR_EMBEDDING = [0.99, 0.14, 0]; // cosine vs anchor ~= 0.990
 const DIFFERENT_EMBEDDING = [0, 1, 0]; // cosine vs anchor = 0
+const MID_BAND_EMBEDDING = [0.8, 0.6, 0]; // cosine vs ANCHOR_EMBEDDING = 0.8, inside [0.78, 0.86)
 
 /** pgvector comes back from PostgREST as a JSON string, so mock it that way. */
 const asPgVector = (v: number[]) => JSON.stringify(v);
@@ -133,6 +134,48 @@ describe("clusterUnclusteredArticles", () => {
       articlesClustered: 1,
       articlesMergedIntoExisting: 1,
     });
+  });
+
+  it("merges into an existing story on mid-band similarity when entity keys overlap", async () => {
+    const { client, embedFn, queries } = scenario({
+      unclustered: [{ id: "new-1", title: "UP Govt Extends Scheme To 60 Women", snippet: "s" }],
+      anchors: [
+        {
+          id: "anchor-1",
+          story_id: "story-existing",
+          embedding: asPgVector(ANCHOR_EMBEDDING),
+          entity_keys: ["up", "60"],
+        },
+      ],
+      embedding: MID_BAND_EMBEDDING,
+    });
+
+    const result = await clusterUnclusteredArticles(client, embedFn);
+
+    expect(storyAssignments(queries)).toEqual([
+      { payload: { story_id: "story-existing" }, ids: ["new-1"] },
+    ]);
+    expect(result.articlesMergedIntoExisting).toBe(1);
+  });
+
+  it("does not merge on mid-band similarity when entity keys don't overlap", async () => {
+    const { client, embedFn, queries } = scenario({
+      unclustered: [{ id: "new-1", title: "Mumbai Metro Announces New Route", snippet: "s" }],
+      anchors: [
+        {
+          id: "anchor-1",
+          story_id: "story-existing",
+          embedding: asPgVector(ANCHOR_EMBEDDING),
+          entity_keys: ["up", "60"],
+        },
+      ],
+      embedding: MID_BAND_EMBEDDING,
+    });
+
+    const result = await clusterUnclusteredArticles(client, embedFn);
+
+    expect(storyInserts(queries)).toHaveLength(1);
+    expect(result.clustersCreated).toBe(1);
   });
 
   it("creates a new story when no anchor is similar enough", async () => {
