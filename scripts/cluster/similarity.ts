@@ -36,12 +36,18 @@ export interface Cluster {
 }
 
 // Greedy single-link clustering: an article joins the first existing
-// cluster where it's similar enough to ANY member; otherwise it starts
-// a new cluster. "Similar enough" is now two-tiered: cosine >= highThreshold
-// merges unconditionally, but cosine in [midThreshold, highThreshold) only
-// merges when the pair also shares at least one entity key — this catches
-// same-event coverage that embeds a bit lower (notably cross-language pairs)
-// without a blanket threshold drop's false-merge risk.
+// cluster where it's similar enough; otherwise it starts a new cluster.
+// "Similar enough" is two-tiered: cosine >= highThreshold merges
+// unconditionally against ANY cluster member (direct topical match is a
+// strong enough signal that drift isn't a concern). Cosine in
+// [midThreshold, highThreshold) only merges when the pair also shares an
+// entity key, and only against the cluster's founding member (cluster[0])
+// — checking this weaker signal against any member let a chain of articles
+// each sharing a generic recurring entity (a person's name, an exam
+// acronym, a city) with some prior member drift arbitrarily far from the
+// cluster's original topic. Note: for anchor-seeded clusters cluster[0] is
+// whichever anchor sorts first, not necessarily the true founder — still a
+// meaningfully tighter bound than "any member".
 export function clusterBySimilarity(
   articles: EmbeddedArticle[],
   highThreshold: number,
@@ -52,12 +58,14 @@ export function clusterBySimilarity(
   for (const article of articles) {
     let placed = false;
     for (const cluster of clusters) {
-      const matches = cluster.some((existing) => {
-        const sim = cosineSimilarity(existing.embedding, article.embedding);
-        if (sim >= highThreshold) return true;
-        return sim >= midThreshold && overlapCount(existing.entityKeys, article.entityKeys) >= 1;
-      });
-      if (matches) {
+      const founder = cluster[0];
+      const matchesHigh = cluster.some(
+        (existing) => cosineSimilarity(existing.embedding, article.embedding) >= highThreshold
+      );
+      const matchesMid =
+        cosineSimilarity(founder.embedding, article.embedding) >= midThreshold &&
+        overlapCount(founder.entityKeys, article.entityKeys) >= 1;
+      if (matchesHigh || matchesMid) {
         cluster.push(article);
         placed = true;
         break;

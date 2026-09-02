@@ -80,4 +80,71 @@ describe("clusterBySimilarity", () => {
     const clusters = clusterBySimilarity(articles, 0.9, 0.75);
     expect(clusters).toHaveLength(2);
   });
+
+  // Regression fixtures for the supercluster drift bug: the mid-threshold+entity
+  // path used to check a new article against ANY current cluster member, so a
+  // chain of articles that each shared a generic recurring entity (a person's
+  // name, an exam acronym, a city) with some prior member could drift
+  // arbitrarily far from the cluster's founding topic. The fix compares only
+  // against cluster[0].
+
+  it("does not chain Bhagwat's NY speech into his separate later Toronto trip via a bridging article", () => {
+    // "bridge" sits in the mid-threshold+entity band relative to the founder
+    // "ny" (cosine 0.82, shares "bhagwat"), so it merges normally. "toronto"
+    // is far from the founder (cosine 0.37, below midThreshold) but is in the
+    // mid-threshold+entity band relative to "bridge" (cosine 0.84, shares
+    // "bhagwat") — under the old any-member rule that was enough to merge it.
+    const articles = [
+      { id: "ny", embedding: [1, 0], entityKeys: ["bhagwat", "new-york"] },
+      { id: "bridge", embedding: [0.82, 0.5724], entityKeys: ["bhagwat"] }, // cosine vs ny: 0.82
+      {
+        id: "toronto",
+        embedding: [0.3746, 0.9272],
+        entityKeys: ["bhagwat", "toronto"],
+      }, // cosine vs ny: 0.37, vs bridge: 0.84
+    ];
+    const clusters = clusterBySimilarity(articles, 0.86, 0.78);
+    const clusterWithNy = clusters.find((c) => c.articleIds.includes("ny"));
+    expect(clusterWithNy?.articleIds).not.toContain("toronto");
+  });
+
+  it("still merges the full NEET-PG Jaipur core cluster via shared entity keys", () => {
+    const founder = { id: "core-0", embedding: [1, 0], entityKeys: ["neet", "pg", "jaipur"] };
+    const members = Array.from({ length: 17 }, (_, i) => ({
+      id: `core-${i + 1}`,
+      embedding: [0.82, 0.5724], // cosine vs founder: 0.82
+      entityKeys: ["neet", "pg", "jaipur"],
+    }));
+    const articles = [founder, ...members];
+    const clusters = clusterBySimilarity(articles, 0.86, 0.78);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].articleIds).toHaveLength(18);
+  });
+
+  it("does not let unrelated Gwalior/Telangana/AIIMS articles join the NEET-PG Jaipur cluster", () => {
+    const founder = { id: "core-0", embedding: [1, 0], entityKeys: ["neet", "pg", "jaipur"] };
+    const core = { id: "core-1", embedding: [0.82, 0.5724], entityKeys: ["neet", "pg", "jaipur"] }; // cosine vs founder: 0.82
+    const unrelated = [
+      { id: "gwalior", embedding: [0.3, 0.9539], entityKeys: ["neet", "gwalior"] }, // cosine vs founder: 0.3
+      { id: "telangana", embedding: [0.35, 0.9368], entityKeys: ["pg", "telangana"] }, // cosine vs founder: 0.35
+      { id: "aiims", embedding: [0.32, 0.9475], entityKeys: ["jaipur", "aiims"] }, // cosine vs founder: 0.32
+    ];
+    const articles = [founder, core, ...unrelated];
+    const clusters = clusterBySimilarity(articles, 0.86, 0.78);
+    const jaipurCluster = clusters.find((c) => c.articleIds.includes("core-0"));
+    expect(jaipurCluster?.articleIds.sort()).toEqual(["core-0", "core-1"]);
+  });
+
+  it("still merges a continuous-incident cluster where every article is close to the founder", () => {
+    const founder = { id: "inc-0", embedding: [1, 0], entityKeys: ["baliyan"] };
+    const members = Array.from({ length: 25 }, (_, i) => ({
+      id: `inc-${i + 1}`,
+      embedding: [0.82, 0.5724], // cosine vs founder: 0.82
+      entityKeys: ["baliyan"],
+    }));
+    const articles = [founder, ...members];
+    const clusters = clusterBySimilarity(articles, 0.86, 0.78);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].articleIds).toHaveLength(26);
+  });
 });
