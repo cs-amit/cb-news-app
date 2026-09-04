@@ -29,6 +29,17 @@ export interface EmbeddedArticle {
   id: string;
   embedding: number[];
   entityKeys: string[];
+  /**
+   * When set, the mid-threshold+entity path uses this instead of the
+   * article's own embedding/entityKeys when the article is being compared
+   * against as cluster[0]. Lets the caller pin comparisons to a story's true
+   * founding article instead of whichever member happens to land first —
+   * cluster[0] is otherwise positional (array order), and for a long-running
+   * story that's often just the most recently merged article, not the
+   * original one ("zombie anchor" drift).
+   */
+  founderEmbedding?: number[];
+  founderEntityKeys?: string[];
 }
 
 export interface Cluster {
@@ -62,9 +73,11 @@ export function clusterBySimilarity(
       const matchesHigh = cluster.some(
         (existing) => cosineSimilarity(existing.embedding, article.embedding) >= highThreshold
       );
+      const founderEmbedding = founder.founderEmbedding ?? founder.embedding;
+      const founderEntityKeys = founder.founderEntityKeys ?? founder.entityKeys;
       const matchesMid =
-        cosineSimilarity(founder.embedding, article.embedding) >= midThreshold &&
-        overlapCount(founder.entityKeys, article.entityKeys) >= 1;
+        cosineSimilarity(founderEmbedding, article.embedding) >= midThreshold &&
+        overlapCount(founderEntityKeys, article.entityKeys) >= 1;
       if (matchesHigh || matchesMid) {
         cluster.push(article);
         placed = true;

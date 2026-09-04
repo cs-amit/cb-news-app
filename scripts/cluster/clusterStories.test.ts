@@ -72,6 +72,10 @@ interface ScenarioOptions {
   anchors?: any[];
   embedding?: number[];
   embeddingWriteError?: { message: string } | null;
+  /** Rows returned for `stories.select("id, founder_article_id").in(...)`. */
+  storyFounders?: any[];
+  /** Rows returned for `articles.select("id, embedding, entity_keys").in(...)` (founder lookup). */
+  founderArticles?: any[];
 }
 
 function scenario(opts: ScenarioOptions = {}) {
@@ -82,7 +86,11 @@ function scenario(opts: ScenarioOptions = {}) {
 
   const mock = makeMockSupabase((q) => {
     if (q.table === "stories") {
-      return { data: { id: "story-new" }, error: null };
+      if (has(q.calls, "insert")) {
+        return { data: { id: "story-new" }, error: null };
+      }
+      // Founder lookup: select("id, founder_article_id").in("id", storyIds)
+      return { data: opts.storyFounders ?? [], error: null };
     }
     // articles ...
     if (has(q.calls, "update")) {
@@ -97,6 +105,10 @@ function scenario(opts: ScenarioOptions = {}) {
     }
     if (has(q.calls, "not", "story_id", "is", null)) {
       return { data: anchors, error: null };
+    }
+    if (has(q.calls, "in")) {
+      // Founder article data lookup: select("id, embedding, entity_keys").in("id", founderArticleIds)
+      return { data: opts.founderArticles ?? [], error: null };
     }
     throw new Error(`unexpected query: ${JSON.stringify(q)}`);
   });
@@ -116,7 +128,8 @@ function storyAssignments(queries: Query[]) {
     .filter((u) => "story_id" in u.payload);
 }
 
-const storyInserts = (queries: Query[]) => queries.filter((q) => q.table === "stories");
+const storyInserts = (queries: Query[]) =>
+  queries.filter((q) => q.table === "stories" && has(q.calls, "insert"));
 
 describe("clusterUnclusteredArticles", () => {
   it("assigns a new article to an EXISTING story when it matches an anchor", async () => {
@@ -192,6 +205,59 @@ describe("clusterUnclusteredArticles", () => {
       articlesClustered: 1,
       articlesMergedIntoExisting: 0,
     });
+  });
+
+  it("sets founder_article_id to the seeding article when creating a new story", async () => {
+    const { client, embedFn, queries } = scenario({ anchors: [], embedding: DIFFERENT_EMBEDDING });
+
+    await clusterUnclusteredArticles(client, embedFn);
+
+    const insertQuery = storyInserts(queries)[0];
+    expect(has(insertQuery.calls, "insert", { founder_article_id: "new-1" })).toBe(true);
+  });
+
+  // Regression test for the "zombie anchor" drift bug: the anchor row that
+  // happens to be cluster[0] (array order, effectively "most recently
+  // merged") is NOT the story's true founder. The fix resolves each anchor
+  // story's real founder (stories.founder_article_id) and passes its
+  // embedding/entity_keys as an override, so the mid-threshold+entity check
+  // uses the true founder instead of whichever anchor landed first.
+  it("merges using the story's true founder, not a drifted anchor's own data", async () => {
+    const TRUE_FOUNDER_EMBEDDING = [1, 0];
+    const ZOMBIE_ANCHOR_EMBEDDING = [0, 1]; // deliberately unrelated to the candidate
+    const CANDIDATE_EMBEDDING = [0.82, 0.5724]; // cosine vs founder 0.82 (mid band); vs zombie 0.57
+
+    const { client, embedFn, queries } = scenario({
+      unclustered: [{ id: "new-1", title: "Zorblex Update", snippet: "s" }],
+      anchors: [
+        {
+          id: "zombie-anchor",
+          story_id: "story-existing",
+          embedding: asPgVector(ZOMBIE_ANCHOR_EMBEDDING),
+          entity_keys: ["irrelevant"],
+        },
+      ],
+      embedding: CANDIDATE_EMBEDDING,
+      storyFounders: [{ id: "story-existing", founder_article_id: "founder-art-1" }],
+      founderArticles: [
+        {
+          id: "founder-art-1",
+          embedding: asPgVector(TRUE_FOUNDER_EMBEDDING),
+          entity_keys: ["zorblex"],
+        },
+      ],
+    });
+
+    const result = await clusterUnclusteredArticles(client, embedFn);
+
+    // Without the founder override this would fail on the zombie anchor's
+    // own data (cosine 0.57, below the 0.78 mid threshold) and spawn a new
+    // story instead.
+    expect(storyAssignments(queries)).toEqual([
+      { payload: { story_id: "story-existing" }, ids: ["new-1"] },
+    ]);
+    expect(result.articlesMergedIntoExisting).toBe(1);
+    expect(result.clustersCreated).toBe(0);
   });
 
   it("creates a new story when there are no anchors at all", async () => {
@@ -303,7 +369,10 @@ describe("clusterUnclusteredArticles", () => {
     ];
 
     const mock = makeMockSupabase((q) => {
-      if (q.table === "stories") return { data: { id: "story-new" }, error: null };
+      if (q.table === "stories") {
+        if (has(q.calls, "insert")) return { data: { id: "story-new" }, error: null };
+        return { data: [], error: null };
+      }
       if (has(q.calls, "update")) return { data: null, error: null };
       if (has(q.calls, "is", "story_id", null)) {
         return { data: [{ id: "new-1", title: "New coverage", snippet: "s" }], error: null };
@@ -334,7 +403,10 @@ describe("clusterUnclusteredArticles", () => {
       }));
 
     const mock = makeMockSupabase((q) => {
-      if (q.table === "stories") return { data: { id: "story-new" }, error: null };
+      if (q.table === "stories") {
+        if (has(q.calls, "insert")) return { data: { id: "story-new" }, error: null };
+        return { data: [], error: null };
+      }
       if (has(q.calls, "update")) return { data: null, error: null };
       if (has(q.calls, "is", "story_id", null)) {
         return { data: [{ id: "new-1", title: "New coverage", snippet: "s" }], error: null };

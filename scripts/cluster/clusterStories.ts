@@ -182,6 +182,61 @@ export async function clusterUnclusteredArticles(
   }
 
   const expectedDim = newEmbedded[0].embedding.length;
+
+  // Resolve each anchor story's TRUE founding article, so the mid-threshold+
+  // entity path in clusterBySimilarity always compares against a stable
+  // reference instead of whichever anchor row array order happens to place
+  // first (cluster[0]) — for a continuously-active story that's effectively
+  // "whatever was most recently merged," which drifts over time ("zombie
+  // anchor" bug). Stories created before founder tracking existed, or whose
+  // founder article's embedding can't be resolved, simply get no override
+  // and fall back to today's cluster[0] behavior.
+  const distinctAnchorStoryIds = [
+    ...new Set(anchorRows.map((r) => r.story_id).filter((id): id is string => !!id)),
+  ];
+  const founderDataByStory = new Map<string, { embedding: number[]; entityKeys: string[] }>();
+
+  if (distinctAnchorStoryIds.length > 0) {
+    const { data: storyRows, error: storyFounderError } = await supabase
+      .from("stories")
+      .select("id, founder_article_id")
+      .in("id", distinctAnchorStoryIds);
+    if (storyFounderError) {
+      throw new Error(`Failed to fetch story founders: ${storyFounderError.message}`);
+    }
+
+    const founderArticleIdByStory = new Map<string, string>();
+    for (const row of (storyRows ?? []) as { id: string; founder_article_id: string | null }[]) {
+      if (row.founder_article_id) founderArticleIdByStory.set(row.id, row.founder_article_id);
+    }
+    const founderArticleIds = [...new Set(founderArticleIdByStory.values())];
+
+    if (founderArticleIds.length > 0) {
+      const { data: founderRows, error: founderArticlesError } = await supabase
+        .from("articles")
+        .select("id, embedding, entity_keys")
+        .in("id", founderArticleIds);
+      if (founderArticlesError) {
+        throw new Error(`Failed to fetch founder articles: ${founderArticlesError.message}`);
+      }
+      const founderDataById = new Map<string, { embedding: number[]; entityKeys: string[] }>();
+      for (const row of (founderRows ?? []) as {
+        id: string;
+        embedding: unknown;
+        entity_keys: unknown;
+      }[]) {
+        const embedding = parseEmbedding(row.embedding);
+        if (!embedding || embedding.length !== expectedDim) continue;
+        const entityKeys = Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : [];
+        founderDataById.set(row.id, { embedding, entityKeys });
+      }
+      for (const [storyId, founderArticleId] of founderArticleIdByStory) {
+        const data = founderDataById.get(founderArticleId);
+        if (data) founderDataByStory.set(storyId, data);
+      }
+    }
+  }
+
   const anchorStoryById = new Map<string, string>();
   const anchorEmbedded: EmbeddedArticle[] = [];
   for (const row of anchorRows) {
@@ -191,7 +246,14 @@ export async function clusterUnclusteredArticles(
     if (!embedding || embedding.length !== expectedDim || !row.story_id) continue;
     const entityKeys = Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : [];
     anchorStoryById.set(row.id, row.story_id);
-    anchorEmbedded.push({ id: row.id, embedding, entityKeys });
+    const founder = founderDataByStory.get(row.story_id);
+    anchorEmbedded.push({
+      id: row.id,
+      embedding,
+      entityKeys,
+      founderEmbedding: founder?.embedding,
+      founderEntityKeys: founder?.entityKeys,
+    });
   }
 
   // Anchors go first: clusterBySimilarity is greedy single-link and places an
@@ -243,7 +305,7 @@ export async function clusterUnclusteredArticles(
 
     const { data: story, error: storyError } = await supabase
       .from("stories")
-      .insert({})
+      .insert({ founder_article_id: newIds[0] })
       .select("id")
       .single();
     if (storyError || !story) {

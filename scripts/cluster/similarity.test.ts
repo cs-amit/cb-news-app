@@ -147,4 +147,46 @@ describe("clusterBySimilarity", () => {
     expect(clusters).toHaveLength(1);
     expect(clusters[0].articleIds).toHaveLength(26);
   });
+
+  // Regression fixtures for the "zombie anchor" bug: cluster[0] is positional
+  // (whichever article array order happens to place first), which for a
+  // long-running story is often the most recently merged article, not the
+  // true founder. A `founderEmbedding`/`founderEntityKeys` override lets the
+  // caller (clusterStories.ts) tell the mid-threshold path what the real
+  // founder looked like, regardless of cluster[0]'s own (possibly drifted) data.
+
+  it("uses the founder override, not cluster[0]'s own data, to ALLOW a mid-threshold merge", () => {
+    const zombieAnchor = {
+      id: "zombie",
+      embedding: [0, 1], // cosine vs candidate: 0.57 — below midThreshold on its own
+      entityKeys: ["driftedTopic"],
+      founderEmbedding: [1, 0], // cosine vs candidate: 0.82 — within mid band
+      founderEntityKeys: ["trueFounder"],
+    };
+    const candidate = {
+      id: "candidate",
+      embedding: [0.82, 0.5724],
+      entityKeys: ["trueFounder"], // overlaps the founder override, not zombie's own keys
+    };
+    const clusters = clusterBySimilarity([zombieAnchor, candidate], 0.86, 0.78);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].articleIds.sort()).toEqual(["candidate", "zombie"]);
+  });
+
+  it("uses the founder override, not cluster[0]'s own data, to BLOCK a mid-threshold merge", () => {
+    const zombieAnchor = {
+      id: "zombie",
+      embedding: [1, 0], // cosine vs candidate: 0.82 — would match on its own
+      entityKeys: ["matchingKey"],
+      founderEmbedding: [0, 1], // cosine vs candidate: 0.57 — below midThreshold
+      founderEntityKeys: ["differentKey"],
+    };
+    const candidate = {
+      id: "candidate",
+      embedding: [0.82, 0.5724],
+      entityKeys: ["matchingKey"],
+    };
+    const clusters = clusterBySimilarity([zombieAnchor, candidate], 0.86, 0.78);
+    expect(clusters).toHaveLength(2);
+  });
 });
