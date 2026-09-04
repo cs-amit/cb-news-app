@@ -2,8 +2,8 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { clusterBySimilarity, EmbeddedArticle } from "./similarity";
 import { extractEntityKeys } from "../../lib/entities";
 
-const SIMILARITY_THRESHOLD_HIGH = 0.86;
-const SIMILARITY_THRESHOLD_MID = 0.78;
+export const SIMILARITY_THRESHOLD_HIGH = 0.86;
+export const SIMILARITY_THRESHOLD_MID = 0.78;
 
 // How far back to look for articles that still need clustering.
 const UNCLUSTERED_WINDOW_HOURS = 48;
