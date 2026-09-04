@@ -8,10 +8,18 @@ interface Query {
   table: string;
   calls: Call[];
 }
-const CHAIN_METHODS = ["select", "update", "is", "eq", "order", "limit"];
+const CHAIN_METHODS = ["select", "update", "is", "eq", "in", "order", "limit"];
 
 function has(calls: Call[], method: string): boolean {
   return calls.some((c) => c.method === method);
+}
+
+/** Fans a fixed per-story article template out across every requested id. */
+function articlesRowsFor(q: Query, template: { title: string; outlet: { name: string } }[]) {
+  const ids: string[] = q.calls.find((c) => c.method === "in")?.args[1] ?? [];
+  const rows: any[] = [];
+  for (const id of ids) for (const a of template) rows.push({ story_id: id, ...a });
+  return rows;
 }
 
 function makeMockSupabase(resolve: (q: Query) => any) {
@@ -40,7 +48,7 @@ describe("fillMissingHeadlines", () => {
         return { data: [{ id: "story-1" }, { id: "story-2" }], error: null };
       }
       if (q.table === "articles") {
-        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
       }
       if (q.table === "stories" && has(q.calls, "update")) {
         return { data: null, error: null };
@@ -69,7 +77,7 @@ describe("fillMissingHeadlines", () => {
         return { data: storyIds, error: null };
       }
       if (q.table === "articles") {
-        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
       }
       if (q.table === "stories" && has(q.calls, "update")) {
         return { data: null, error: null };
@@ -83,7 +91,7 @@ describe("fillMissingHeadlines", () => {
       return map;
     });
 
-    const updated = await fillMissingHeadlines(client, generateFn);
+    const updated = await fillMissingHeadlines(client, generateFn, jest.fn().mockResolvedValue(undefined));
 
     // 45 stories over a batch size of 20 -> 3 calls (20, 20, 5), not 1.
     expect(generateFn).toHaveBeenCalledTimes(3);
@@ -101,7 +109,7 @@ describe("fillMissingHeadlines", () => {
         return { data: storyIds, error: null };
       }
       if (q.table === "articles") {
-        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
       }
       if (q.table === "stories" && has(q.calls, "update")) {
         return { data: null, error: null };
@@ -118,11 +126,46 @@ describe("fillMissingHeadlines", () => {
       return map;
     });
 
-    const updated = await fillMissingHeadlines(client, generateFn);
+    const updated = await fillMissingHeadlines(client, generateFn, jest.fn().mockResolvedValue(undefined));
 
     expect(generateFn).toHaveBeenCalledTimes(2); // does not attempt the 3rd chunk
     expect(updated).toBe(20); // only the first chunk's 20 stories were saved
     errorSpy.mockRestore();
+  });
+
+  it("spaces out sequential batch requests to stay under the per-minute rate limit", async () => {
+    const storyIds = Array.from({ length: 45 }, (_, i) => ({ id: `story-${i}` }));
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "select")) {
+        return { data: storyIds, error: null };
+      }
+      if (q.table === "articles") {
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        return { data: null, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+    const generateFn = jest.fn().mockImplementation(async (chunk: { id: string }[]) => {
+      const map = new Map();
+      for (const s of chunk) map.set(s.id, { headline: "H", summary: "S" });
+      return map;
+    });
+    const sleepFn = jest.fn().mockResolvedValue(undefined);
+
+    await fillMissingHeadlines(client, generateFn, sleepFn);
+
+    // 3 batch calls -> 2 gaps between them; no sleep before the first call.
+    expect(sleepFn).toHaveBeenCalledTimes(2);
+    expect(sleepFn).toHaveBeenCalledWith(expect.any(Number));
+    // generateFn must not be invoked again before the sleep before it resolves.
+    const sleepOrder = sleepFn.mock.invocationCallOrder;
+    const generateOrder = generateFn.mock.invocationCallOrder;
+    expect(sleepOrder[0]).toBeGreaterThan(generateOrder[0]);
+    expect(sleepOrder[0]).toBeLessThan(generateOrder[1]);
+    expect(sleepOrder[1]).toBeGreaterThan(generateOrder[1]);
+    expect(sleepOrder[1]).toBeLessThan(generateOrder[2]);
   });
 
   it("saves the classified topic alongside the headline and summary", async () => {
@@ -131,7 +174,7 @@ describe("fillMissingHeadlines", () => {
         return { data: [{ id: "story-1" }], error: null };
       }
       if (q.table === "articles") {
-        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
       }
       if (q.table === "stories" && has(q.calls, "update")) {
         return { data: null, error: null };
@@ -158,7 +201,7 @@ describe("fillMissingHeadlines", () => {
         return { data: [{ id: "story-1" }], error: null };
       }
       if (q.table === "articles") {
-        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
       }
       throw new Error(`unexpected query: ${JSON.stringify(q)}`);
     });
@@ -178,7 +221,7 @@ describe("fillMissingHeadlines", () => {
         return { data: [{ id: "story-1" }, { id: "story-2" }], error: null };
       }
       if (q.table === "articles") {
-        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+        return { data: articlesRowsFor(q, [{ title: "T", outlet: { name: "Outlet" } }]), error: null };
       }
       if (q.table === "stories" && has(q.calls, "update")) {
         return { data: null, error: null };

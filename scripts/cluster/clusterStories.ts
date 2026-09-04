@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { clusterBySimilarity, EmbeddedArticle } from "./similarity";
 import { extractEntityKeys } from "../../lib/entities";
+import { chunk } from "../../lib/chunk";
 
 export const SIMILARITY_THRESHOLD_HIGH = 0.86;
 export const SIMILARITY_THRESHOLD_MID = 0.78;
@@ -38,12 +39,6 @@ const ANCHOR_SAFETY_CEILING = 5000;
 // silently-empty-message thrown error). Page through ids in bounded batches
 // instead, mirroring the anchor fetch's own pagination.
 const FOUNDER_LOOKUP_BATCH_SIZE = 200;
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
-  return chunks;
-}
 
 interface UnclusteredArticle {
   id: string;

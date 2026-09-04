@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cosineSimilarity, overlapCount } from "./similarity";
 import { parseEmbedding, SIMILARITY_THRESHOLD_MID } from "./clusterStories";
 import { extractEntityKeys } from "../../lib/entities";
+import { chunk } from "../../lib/chunk";
 
 /**
  * One-off re-merge pass, NOT part of the 2h ingest cron. Backfills
@@ -177,32 +178,28 @@ async function main() {
     string,
     { title: string; embedding: number[] | null; entity_keys: string[] | null }
   >();
-  {
-    const BATCH = 200;
-    for (let i = 0; i < founderArticleIds.length; i += BATCH) {
-      const batch = founderArticleIds.slice(i, i + BATCH);
-      const { data, error } = await supabase
-        .from("articles")
-        .select("id, title, embedding, entity_keys")
-        .in("id", batch);
-      if (error) throw new Error(`Failed to fetch founder articles: ${error.message}`);
-      for (const row of (data ?? []) as {
-        id: string;
-        title: string;
-        embedding: unknown;
-        entity_keys: unknown;
-      }[]) {
-        founderById.set(row.id, {
-          title: row.title,
-          embedding: parseEmbedding(row.embedding),
-          entity_keys: Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : null,
-        });
-      }
+  for (const batch of chunk(founderArticleIds, 200)) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select("id, title, embedding, entity_keys")
+      .in("id", batch);
+    if (error) throw new Error(`Failed to fetch founder articles: ${error.message}`);
+    for (const row of (data ?? []) as {
+      id: string;
+      title: string;
+      embedding: unknown;
+      entity_keys: unknown;
+    }[]) {
+      founderById.set(row.id, {
+        title: row.title,
+        embedding: parseEmbedding(row.embedding),
+        entity_keys: Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : null,
+      });
     }
   }
 
   const allStories: RemergeStory[] = [];
-  const needsEntityBackfill: { articleId: string; entityKeys: string[] }[] = [];
+  const needsEntityBackfillIds = new Set<string>();
   for (const s of storyRows) {
     if (!s.founder_article_id) continue;
     const founder = founderById.get(s.founder_article_id);
@@ -210,7 +207,7 @@ async function main() {
     let entityKeys = founder.entity_keys;
     if (!entityKeys) {
       entityKeys = extractEntityKeys(founder.title);
-      needsEntityBackfill.push({ articleId: s.founder_article_id, entityKeys });
+      needsEntityBackfillIds.add(s.founder_article_id);
     }
     allStories.push({
       storyId: s.id,
@@ -221,10 +218,10 @@ async function main() {
       articleCount: storyCountByStoryId.get(s.id) ?? 0,
     });
   }
-  console.log(`  ${needsEntityBackfill.length} founder articles need entity_keys backfilled.`);
+  console.log(`  ${needsEntityBackfillIds.size} founder articles need entity_keys backfilled.`);
 
   const candidates = allStories.filter(
-    (s) => s.articleCount === 1 && needsEntityBackfill.some((b) => b.articleId === s.founderArticleId)
+    (s) => s.articleCount === 1 && needsEntityBackfillIds.has(s.founderArticleId)
   );
   console.log(`  ${candidates.length} single-source stories are re-merge candidates.`);
 
