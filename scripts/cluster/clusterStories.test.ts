@@ -85,12 +85,15 @@ function scenario(opts: ScenarioOptions = {}) {
   ];
 
   const mock = makeMockSupabase((q) => {
+    const inIds = (): string[] => q.calls.find((c) => c.method === "in")?.args[1] ?? [];
+
     if (q.table === "stories") {
       if (has(q.calls, "insert")) {
         return { data: { id: "story-new" }, error: null };
       }
       // Founder lookup: select("id, founder_article_id").in("id", storyIds)
-      return { data: opts.storyFounders ?? [], error: null };
+      const ids = inIds();
+      return { data: (opts.storyFounders ?? []).filter((r) => ids.includes(r.id)), error: null };
     }
     // articles ...
     if (has(q.calls, "update")) {
@@ -108,7 +111,8 @@ function scenario(opts: ScenarioOptions = {}) {
     }
     if (has(q.calls, "in")) {
       // Founder article data lookup: select("id, embedding, entity_keys").in("id", founderArticleIds)
-      return { data: opts.founderArticles ?? [], error: null };
+      const ids = inIds();
+      return { data: (opts.founderArticles ?? []).filter((r) => ids.includes(r.id)), error: null };
     }
     throw new Error(`unexpected query: ${JSON.stringify(q)}`);
   });
@@ -258,6 +262,39 @@ describe("clusterUnclusteredArticles", () => {
     ]);
     expect(result.articlesMergedIntoExisting).toBe(1);
     expect(result.clustersCreated).toBe(0);
+  });
+
+  it("batches the story-founder lookup instead of one unbounded .in() query", async () => {
+    // Reproduces a 2026-09-04 prod outage: with the anchor set near its
+    // safety ceiling, distinct anchor story ids can number in the thousands.
+    // A single .in("id", allOfThem) query blows past the request URL length
+    // limit and fails before it even reaches Supabase's edge (no error
+    // detail, no edge log entry) — the lookup must page through the ids in
+    // bounded batches, same as the anchor fetch itself already does.
+    const anchorCount = 300;
+    const anchors = Array.from({ length: anchorCount }, (_, i) => ({
+      id: `anchor-${i}`,
+      story_id: `story-${i}`,
+      embedding: asPgVector(DIFFERENT_EMBEDDING),
+    }));
+    const storyFounders = Array.from({ length: anchorCount }, (_, i) => ({
+      id: `story-${i}`,
+      founder_article_id: `founder-${i}`,
+    }));
+
+    const { client, embedFn, queries } = scenario({ anchors, storyFounders });
+    await clusterUnclusteredArticles(client, embedFn);
+
+    const founderLookups = queries.filter((q) => q.table === "stories" && !has(q.calls, "insert"));
+    expect(founderLookups.length).toBeGreaterThan(1);
+
+    const requestedIds = new Set<string>();
+    for (const q of founderLookups) {
+      const ids: string[] = q.calls.find((c) => c.method === "in")!.args[1];
+      expect(ids.length).toBeLessThan(anchorCount);
+      for (const id of ids) requestedIds.add(id);
+    }
+    expect(requestedIds.size).toBe(anchorCount);
   });
 
   it("creates a new story when there are no anchors at all", async () => {

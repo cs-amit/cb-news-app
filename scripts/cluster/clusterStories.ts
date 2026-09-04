@@ -30,6 +30,21 @@ const ANCHOR_PAGE_SIZE = 500;
 // loud warning instead of an unbounded fetch loop.
 const ANCHOR_SAFETY_CEILING = 5000;
 
+// Batch size for founder-resolution .in() lookups. These ids come from the
+// anchor set, which can run into the thousands near ANCHOR_SAFETY_CEILING;
+// a single .in() with that many UUIDs blows past the request URL length
+// limit and fails before it even reaches Supabase's edge (no PostgREST error
+// detail, no edge log entry — a 2026-09-04 prod outage traced this to a
+// silently-empty-message thrown error). Page through ids in bounded batches
+// instead, mirroring the anchor fetch's own pagination.
+const FOUNDER_LOOKUP_BATCH_SIZE = 200;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
 interface UnclusteredArticle {
   id: string;
   title: string;
@@ -197,38 +212,41 @@ export async function clusterUnclusteredArticles(
   const founderDataByStory = new Map<string, { embedding: number[]; entityKeys: string[] }>();
 
   if (distinctAnchorStoryIds.length > 0) {
-    const { data: storyRows, error: storyFounderError } = await supabase
-      .from("stories")
-      .select("id, founder_article_id")
-      .in("id", distinctAnchorStoryIds);
-    if (storyFounderError) {
-      throw new Error(`Failed to fetch story founders: ${storyFounderError.message}`);
-    }
-
     const founderArticleIdByStory = new Map<string, string>();
-    for (const row of (storyRows ?? []) as { id: string; founder_article_id: string | null }[]) {
-      if (row.founder_article_id) founderArticleIdByStory.set(row.id, row.founder_article_id);
+    for (const idBatch of chunk(distinctAnchorStoryIds, FOUNDER_LOOKUP_BATCH_SIZE)) {
+      const { data: storyRows, error: storyFounderError } = await supabase
+        .from("stories")
+        .select("id, founder_article_id")
+        .in("id", idBatch);
+      if (storyFounderError) {
+        throw new Error(`Failed to fetch story founders: ${storyFounderError.message}`);
+      }
+      for (const row of (storyRows ?? []) as { id: string; founder_article_id: string | null }[]) {
+        if (row.founder_article_id) founderArticleIdByStory.set(row.id, row.founder_article_id);
+      }
     }
     const founderArticleIds = [...new Set(founderArticleIdByStory.values())];
 
     if (founderArticleIds.length > 0) {
-      const { data: founderRows, error: founderArticlesError } = await supabase
-        .from("articles")
-        .select("id, embedding, entity_keys")
-        .in("id", founderArticleIds);
-      if (founderArticlesError) {
-        throw new Error(`Failed to fetch founder articles: ${founderArticlesError.message}`);
-      }
       const founderDataById = new Map<string, { embedding: number[]; entityKeys: string[] }>();
-      for (const row of (founderRows ?? []) as {
-        id: string;
-        embedding: unknown;
-        entity_keys: unknown;
-      }[]) {
-        const embedding = parseEmbedding(row.embedding);
-        if (!embedding || embedding.length !== expectedDim) continue;
-        const entityKeys = Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : [];
-        founderDataById.set(row.id, { embedding, entityKeys });
+      for (const idBatch of chunk(founderArticleIds, FOUNDER_LOOKUP_BATCH_SIZE)) {
+        const { data: founderRows, error: founderArticlesError } = await supabase
+          .from("articles")
+          .select("id, embedding, entity_keys")
+          .in("id", idBatch);
+        if (founderArticlesError) {
+          throw new Error(`Failed to fetch founder articles: ${founderArticlesError.message}`);
+        }
+        for (const row of (founderRows ?? []) as {
+          id: string;
+          embedding: unknown;
+          entity_keys: unknown;
+        }[]) {
+          const embedding = parseEmbedding(row.embedding);
+          if (!embedding || embedding.length !== expectedDim) continue;
+          const entityKeys = Array.isArray(row.entity_keys) ? (row.entity_keys as string[]) : [];
+          founderDataById.set(row.id, { embedding, entityKeys });
+        }
       }
       for (const [storyId, founderArticleId] of founderArticleIdByStory) {
         const data = founderDataById.get(founderArticleId);
