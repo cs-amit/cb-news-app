@@ -62,6 +62,69 @@ describe("fillMissingHeadlines", () => {
     expect(updated).toBe(2);
   });
 
+  it("issues multiple batch calls when more stories need headlines than one batch holds", async () => {
+    const storyIds = Array.from({ length: 45 }, (_, i) => ({ id: `story-${i}` }));
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "select")) {
+        return { data: storyIds, error: null };
+      }
+      if (q.table === "articles") {
+        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        return { data: null, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const generateFn = jest.fn().mockImplementation(async (chunk: { id: string }[]) => {
+      const map = new Map();
+      for (const s of chunk) map.set(s.id, { headline: "H", summary: "S" });
+      return map;
+    });
+
+    const updated = await fillMissingHeadlines(client, generateFn);
+
+    // 45 stories over a batch size of 20 -> 3 calls (20, 20, 5), not 1.
+    expect(generateFn).toHaveBeenCalledTimes(3);
+    expect(generateFn.mock.calls[0][0]).toHaveLength(20);
+    expect(generateFn.mock.calls[1][0]).toHaveLength(20);
+    expect(generateFn.mock.calls[2][0]).toHaveLength(5);
+    expect(updated).toBe(45);
+  });
+
+  it("stops issuing further batches once one fails, keeping earlier successes", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const storyIds = Array.from({ length: 45 }, (_, i) => ({ id: `story-${i}` }));
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "select")) {
+        return { data: storyIds, error: null };
+      }
+      if (q.table === "articles") {
+        return { data: [{ title: "T", outlet: { name: "Outlet" } }], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        return { data: null, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    let call = 0;
+    const generateFn = jest.fn().mockImplementation(async (chunk: { id: string }[]) => {
+      call += 1;
+      if (call === 2) throw new Error("429 quota");
+      const map = new Map();
+      for (const s of chunk) map.set(s.id, { headline: "H", summary: "S" });
+      return map;
+    });
+
+    const updated = await fillMissingHeadlines(client, generateFn);
+
+    expect(generateFn).toHaveBeenCalledTimes(2); // does not attempt the 3rd chunk
+    expect(updated).toBe(20); // only the first chunk's 20 stories were saved
+    errorSpy.mockRestore();
+  });
+
   it("saves the classified topic alongside the headline and summary", async () => {
     const { client, queries } = makeMockSupabase((q) => {
       if (q.table === "stories" && has(q.calls, "select")) {
