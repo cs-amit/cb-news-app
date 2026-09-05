@@ -1,9 +1,70 @@
 import "dotenv/config";
+import * as fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { cosineSimilarity, overlapCount } from "./similarity";
 import { parseEmbedding, SIMILARITY_THRESHOLD_MID } from "./clusterStories";
 import { extractEntityKeys } from "../../lib/entities";
 import { chunk } from "../../lib/chunk";
+
+/** Postgres single-quoted string literal, with embedded quotes doubled. */
+export function sqlString(s: string): string {
+  return `'${s.replace(/'/g, "''")}'`;
+}
+
+/** `ARRAY['a','b']::text[]`, safe for arbitrary (incl. non-ASCII) key text. */
+export function sqlTextArray(items: string[]): string {
+  return `ARRAY[${items.map(sqlString).join(",")}]::text[]`;
+}
+
+/** Batched `UPDATE articles SET entity_keys = ... FROM (VALUES ...)` statements. */
+export function buildEntityKeysBackfillSql(
+  rows: { articleId: string; entityKeys: string[] }[],
+  batchSize = 500
+): string {
+  return chunk(rows, batchSize)
+    .map((batch) => {
+      const values = batch
+        .map((r) => `(${sqlString(r.articleId)}::uuid, ${sqlTextArray(r.entityKeys)})`)
+        .join(",\n  ");
+      return (
+        `update articles a set entity_keys = c.keys from (values\n  ${values}\n) ` +
+        `as c(id, keys) where a.id = c.id;`
+      );
+    })
+    .join("\n\n");
+}
+
+/** Batched `UPDATE articles SET story_id = winner FROM (VALUES ...)` statements. */
+export function buildStoryReassignSql(
+  decisions: { loserArticleId: string; winnerStoryId: string }[],
+  batchSize = 500
+): string {
+  return chunk(decisions, batchSize)
+    .map((batch) => {
+      const values = batch
+        .map((d) => `(${sqlString(d.loserArticleId)}::uuid, ${sqlString(d.winnerStoryId)}::uuid)`)
+        .join(",\n  ");
+      return (
+        `update articles a set story_id = c.winner from (values\n  ${values}\n) ` +
+        `as c(article_id, winner) where a.id = c.article_id;`
+      );
+    })
+    .join("\n\n");
+}
+
+/**
+ * Batched `DELETE FROM stories WHERE id IN (...)` statements, one id per
+ * line (not a single long line) so the generated file can be read back in
+ * bounded chunks.
+ */
+export function buildDeleteStoriesSql(storyIds: string[], batchSize = 500): string {
+  return chunk(storyIds, batchSize)
+    .map(
+      (batch) =>
+        `delete from stories where id in (\n  ${batch.map(sqlString).join(",\n  ")}\n);`
+    )
+    .join("\n\n");
+}
 
 /**
  * One-off re-merge pass, NOT part of the 2h ingest cron. Backfills
@@ -252,8 +313,31 @@ async function main() {
     return;
   }
 
-  throw new Error(
-    "--apply is not implemented yet: this is staged for review before any prod write runs."
+  // --apply does NOT write to the DB directly: at this volume (tens of
+  // thousands of per-row-different-value updates), looping individual
+  // supabase-js calls is both slow and repeats tonight's URL-length lesson at
+  // a different layer. Instead, emit batched SQL for review and application
+  // as tracked migrations (same pattern as migration 0012's backfill), plus a
+  // JSON audit trail of exactly what was decided.
+  const backfillRows = allStories
+    .filter((s) => needsEntityBackfillIds.has(s.founderArticleId))
+    .map((s) => ({ articleId: s.founderArticleId, entityKeys: s.entityKeys }));
+
+  fs.mkdirSync("scratchpad", { recursive: true });
+  fs.writeFileSync(
+    "scratchpad/remerge_decisions.json",
+    JSON.stringify({ generatedAt: new Date().toISOString(), backfillRows, decisions }, null, 2)
+  );
+  fs.writeFileSync("scratchpad/remerge_01_backfill_entity_keys.sql", buildEntityKeysBackfillSql(backfillRows));
+  fs.writeFileSync("scratchpad/remerge_02_reassign_story_id.sql", buildStoryReassignSql(decisions));
+  fs.writeFileSync(
+    "scratchpad/remerge_03_delete_orphaned_stories.sql",
+    buildDeleteStoriesSql(decisions.map((d) => d.loserStoryId))
+  );
+  console.log(
+    `\nWrote scratchpad/remerge_decisions.json and 3 SQL files ` +
+      `(${backfillRows.length} backfill rows, ${decisions.length} reassignments/deletions). ` +
+      `Nothing has been written to the database yet.`
   );
 }
 

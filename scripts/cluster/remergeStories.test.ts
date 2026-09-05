@@ -1,4 +1,12 @@
-import { planRemerges, RemergeStory } from "./remergeStories";
+import {
+  planRemerges,
+  RemergeStory,
+  sqlString,
+  sqlTextArray,
+  buildEntityKeysBackfillSql,
+  buildStoryReassignSql,
+  buildDeleteStoriesSql,
+} from "./remergeStories";
 
 // cosine([1,0]) vs [0.82,0.5724] = 0.82 (mid band); vs [0,1] = 0.
 const A_EMBEDDING = [1, 0];
@@ -156,5 +164,53 @@ describe("planRemerges", () => {
     const decisions = planRemerges([story1, story2], [story1, story2]);
     expect(decisions).toHaveLength(1);
     expect(decisions[0]).toMatchObject({ winnerStoryId: "story-1", loserStoryId: "story-2" });
+  });
+});
+
+describe("SQL generation for --apply", () => {
+  it("doubles embedded single quotes in string literals", () => {
+    expect(sqlString("O'Brien")).toBe("'O''Brien'");
+    expect(sqlString("plain")).toBe("'plain'");
+  });
+
+  it("builds a text[] array literal with each element quoted", () => {
+    expect(sqlTextArray(["modi", "o'brien"])).toBe("ARRAY['modi','o''brien']::text[]");
+    expect(sqlTextArray([])).toBe("ARRAY[]::text[]");
+  });
+
+  it("builds one UPDATE...FROM VALUES statement per batch for entity_keys backfill", () => {
+    const rows = [
+      { articleId: "a1", entityKeys: ["x", "y"] },
+      { articleId: "a2", entityKeys: ["z"] },
+      { articleId: "a3", entityKeys: [] },
+    ];
+    const sql = buildEntityKeysBackfillSql(rows, 2);
+    const statements = sql.split(";").map((s) => s.trim()).filter(Boolean);
+    expect(statements).toHaveLength(2); // batches of 2 -> [a1,a2], [a3]
+    expect(statements[0]).toContain("update articles a set entity_keys = c.keys");
+    expect(statements[0]).toContain("'a1'::uuid");
+    expect(statements[0]).toContain("ARRAY['x','y']::text[]");
+    expect(statements[1]).toContain("'a3'::uuid");
+  });
+
+  it("builds one UPDATE...FROM VALUES statement per batch for story_id reassignment", () => {
+    const decisions = [
+      { loserArticleId: "art-1", winnerStoryId: "story-a" },
+      { loserArticleId: "art-2", winnerStoryId: "story-b" },
+    ];
+    const sql = buildStoryReassignSql(decisions, 1);
+    const statements = sql.split(";").map((s) => s.trim()).filter(Boolean);
+    expect(statements).toHaveLength(2);
+    expect(statements[0]).toContain("update articles a set story_id = c.winner");
+    expect(statements[0]).toContain("'art-1'::uuid");
+    expect(statements[0]).toContain("'story-a'::uuid");
+  });
+
+  it("builds one DELETE...WHERE id IN statement per batch, one id per line", () => {
+    const sql = buildDeleteStoriesSql(["s1", "s2", "s3"], 2);
+    const statements = sql.split(";").map((s) => s.trim()).filter(Boolean);
+    expect(statements).toHaveLength(2);
+    expect(statements[0]).toBe("delete from stories where id in (\n  's1',\n  's2'\n)");
+    expect(statements[1]).toBe("delete from stories where id in (\n  's3'\n)");
   });
 });
