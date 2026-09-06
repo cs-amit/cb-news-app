@@ -45,6 +45,7 @@ interface UnclusteredArticle {
   id: string;
   title: string;
   snippet: string | null;
+  image_url: string | null;
 }
 
 export interface ClusterRunResult {
@@ -98,7 +99,7 @@ export async function clusterUnclusteredArticles(
   // invisible to clustering forever. Include them explicitly.
   const { data: articles, error } = await supabase
     .from("articles")
-    .select("id, title, snippet")
+    .select("id, title, snippet, image_url")
     .is("story_id", null)
     .or(`published_at.is.null,published_at.gte.${unclusteredCutoff}`);
 
@@ -106,6 +107,14 @@ export async function clusterUnclusteredArticles(
   if (!articles || articles.length === 0) {
     return empty;
   }
+
+  // Set once at story-creation time from whichever article founds it, same
+  // "never re-derived" convention as founder_article_id — a representative
+  // thumbnail is good enough for a feed card; it doesn't need to track the
+  // story's best available image as coverage accumulates.
+  const imageUrlByArticleId = new Map(
+    (articles as UnclusteredArticle[]).map((a) => [a.id, a.image_url])
+  );
 
   // Embed the new articles. A single embedding failure (e.g. a transient
   // Gemini error) skips just that article rather than aborting the run; if
@@ -357,7 +366,7 @@ export async function clusterUnclusteredArticles(
 
     const { data: story, error: storyError } = await supabase
       .from("stories")
-      .insert({ founder_article_id: newIds[0] })
+      .insert({ founder_article_id: newIds[0], image_url: imageUrlByArticleId.get(newIds[0]) ?? null })
       .select("id")
       .single();
     if (storyError || !story) {

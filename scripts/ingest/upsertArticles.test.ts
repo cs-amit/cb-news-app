@@ -11,8 +11,14 @@ describe("upsertArticles", () => {
   it("maps feed items to article rows with the given outlet id", async () => {
     const { client, upsert, from } = makeMockSupabase({ error: null, count: 2 });
     const items: FeedItem[] = [
-      { title: "A", url: "https://x.com/1", snippet: "s1", publishedAt: "2026-08-01T00:00:00Z" },
-      { title: "B", url: "https://x.com/2", snippet: "s2", publishedAt: null },
+      {
+        title: "A",
+        url: "https://x.com/1",
+        snippet: "s1",
+        publishedAt: "2026-08-01T00:00:00Z",
+        imageUrl: "https://x.com/1.jpg",
+      },
+      { title: "B", url: "https://x.com/2", snippet: "s2", publishedAt: null, imageUrl: null },
     ];
 
     const count = await upsertArticles(client, "outlet-123", items);
@@ -20,8 +26,22 @@ describe("upsertArticles", () => {
     expect(from).toHaveBeenCalledWith("articles");
     expect(upsert).toHaveBeenCalledWith(
       [
-        { outlet_id: "outlet-123", title: "A", url: "https://x.com/1", snippet: "s1", published_at: "2026-08-01T00:00:00Z" },
-        { outlet_id: "outlet-123", title: "B", url: "https://x.com/2", snippet: "s2", published_at: null },
+        {
+          outlet_id: "outlet-123",
+          title: "A",
+          url: "https://x.com/1",
+          snippet: "s1",
+          published_at: "2026-08-01T00:00:00Z",
+          image_url: "https://x.com/1.jpg",
+        },
+        {
+          outlet_id: "outlet-123",
+          title: "B",
+          url: "https://x.com/2",
+          snippet: "s2",
+          published_at: null,
+          image_url: null,
+        },
       ],
       { onConflict: "url", ignoreDuplicates: true, count: "exact" }
     );
@@ -39,7 +59,7 @@ describe("upsertArticles", () => {
     const { client } = makeMockSupabase({ error: { message: "boom" }, count: 0 });
     await expect(
       upsertArticles(client, "outlet-123", [
-        { title: "A", url: "https://x.com/1", snippet: "", publishedAt: null },
+        { title: "A", url: "https://x.com/1", snippet: "", publishedAt: null, imageUrl: null },
       ])
     ).rejects.toThrow("Failed to upsert articles: boom");
   });

@@ -6,6 +6,7 @@ function makeOutlet(overrides: Partial<OutletInfo>): OutletInfo {
     id: "outlet-default",
     name: "Default Outlet",
     is_youtube: false,
+    rss_url: null,
     ownership: null,
     freedom_score: null,
     govt_lean_score: null,
@@ -22,6 +23,7 @@ function makeArticle(overrides: Partial<ArticleWithOutlet> & { outlet: OutletInf
     title: `Headline from ${overrides.outlet.name}`,
     url: `https://example.com/${overrides.outlet.id}`,
     published_at: null,
+    image_url: null,
     ...overrides,
   };
 }
@@ -115,6 +117,7 @@ describe("pickComparisonArticles", () => {
       title: "Orphan article",
       url: "https://example.com/orphan",
       published_at: null,
+      image_url: null,
       outlet: null,
     };
     const valid = makeArticle({ outlet: makeOutlet({ id: "valid", govt_lean_score: 10 }) });
@@ -171,6 +174,7 @@ describe("pickFramingSpectrum", () => {
       title: "Orphan article",
       url: "https://example.com/orphan",
       published_at: null,
+      image_url: null,
       outlet: null,
     };
     const b = makeArticle({ outlet: makeOutlet({ id: "b", govt_lean_score: 90 }) });

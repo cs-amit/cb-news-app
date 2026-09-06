@@ -13,6 +13,7 @@ export async function upsertArticles(
     url: item.url,
     snippet: item.snippet,
     published_at: item.publishedAt,
+    image_url: item.imageUrl,
   }));
   const { error, count } = await supabase
     .from("articles")

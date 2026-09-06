@@ -8,7 +8,7 @@ import { computeDrift, PollResponseForDrift } from "./compassDrift";
 export async function fetchRecentStories(supabase: SupabaseClient, topic?: string): Promise<Story[]> {
   let query = supabase
     .from("stories")
-    .select("id, canonical_headline, summary, first_seen_at")
+    .select("id, canonical_headline, summary, first_seen_at, image_url")
     // Only surface stories that already have a generated headline. Headline
     // generation is rate-limited (~20 Gemini requests/day), so headline-less
     // stories are created faster than they can be labelled; without this
@@ -28,7 +28,7 @@ export async function fetchStoryWithArticles(
 ): Promise<{ story: Story; articles: ArticleWithOutlet[] }> {
   const { data: story, error: storyError } = await supabase
     .from("stories")
-    .select("id, canonical_headline, summary, first_seen_at")
+    .select("id, canonical_headline, summary, first_seen_at, image_url")
     .eq("id", storyId)
     .single();
   if (storyError || !story) throw new Error(`Failed to fetch story: ${storyError?.message}`);
@@ -36,7 +36,7 @@ export async function fetchStoryWithArticles(
   const { data: articles, error: articlesError } = await supabase
     .from("articles")
     .select(
-      "id, title, url, published_at, outlet:outlets(id, name, is_youtube, ownership, freedom_score, govt_lean_score, sensationalism_score, govt_lean_sample_size, govt_lean_updated_at)"
+      "id, title, url, published_at, image_url, outlet:outlets(id, name, is_youtube, rss_url, ownership, freedom_score, govt_lean_score, sensationalism_score, govt_lean_sample_size, govt_lean_updated_at)"
     )
     .eq("story_id", storyId)
     .order("published_at", { ascending: false });

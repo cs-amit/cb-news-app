@@ -3,6 +3,7 @@ export interface Story {
   canonical_headline: string | null;
   summary: string | null;
   first_seen_at: string;
+  image_url: string | null;
 }
 
 export interface OutletOwnership {
@@ -17,6 +18,7 @@ export interface OutletInfo {
   id: string;
   name: string;
   is_youtube: boolean;
+  rss_url: string | null;
   ownership: OutletOwnership | null;
   freedom_score: number | null;
   govt_lean_score: number | null;
@@ -30,6 +32,7 @@ export interface ArticleWithOutlet {
   title: string;
   url: string;
   published_at: string | null;
+  image_url: string | null;
   outlet: OutletInfo | null;
 }
 

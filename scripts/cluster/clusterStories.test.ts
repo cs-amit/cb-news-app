@@ -237,7 +237,27 @@ describe("clusterUnclusteredArticles", () => {
     await clusterUnclusteredArticles(client, embedFn);
 
     const insertQuery = storyInserts(queries)[0];
-    expect(has(insertQuery.calls, "insert", { founder_article_id: "new-1" })).toBe(true);
+    expect(has(insertQuery.calls, "insert", { founder_article_id: "new-1", image_url: null })).toBe(
+      true
+    );
+  });
+
+  it("sets the story's image_url from the seeding article's image when it has one", async () => {
+    const { client, embedFn, queries } = scenario({
+      anchors: [],
+      embedding: DIFFERENT_EMBEDDING,
+      unclustered: [{ id: "new-1", title: "New coverage", snippet: "s", image_url: "https://x.com/1.jpg" }],
+    });
+
+    await clusterUnclusteredArticles(client, embedFn);
+
+    const insertQuery = storyInserts(queries)[0];
+    expect(
+      has(insertQuery.calls, "insert", {
+        founder_article_id: "new-1",
+        image_url: "https://x.com/1.jpg",
+      })
+    ).toBe(true);
   });
 
   // Regression test for the "zombie anchor" drift bug: the anchor row that
