@@ -4,6 +4,7 @@ export interface Story {
   summary: string | null;
   first_seen_at: string;
   image_url: string | null;
+  article_count: number;
 }
 
 export interface OutletOwnership {

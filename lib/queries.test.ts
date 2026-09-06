@@ -36,7 +36,13 @@ function makeMockSupabase(result: { data: any; error: any }) {
 describe("fetchRecentStories", () => {
   it("returns the story list on success", async () => {
     const stories = [
-      { id: "1", canonical_headline: "H", summary: "S", first_seen_at: "2026-08-01T00:00:00Z" },
+      {
+        id: "1",
+        canonical_headline: "H",
+        summary: "S",
+        first_seen_at: "2026-08-01T00:00:00Z",
+        article_count: 3,
+      },
     ];
     const { client, from } = makeMockSupabase({ data: stories, error: null });
     const result = await fetchRecentStories(client);

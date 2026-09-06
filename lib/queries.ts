@@ -9,7 +9,13 @@ import { computeCompassDistribution, CompassDistribution } from "./compassStats"
 export async function fetchRecentStories(supabase: SupabaseClient, topic?: string): Promise<Story[]> {
   let query = supabase
     .from("stories")
-    .select("id, canonical_headline, summary, first_seen_at, image_url")
+    // article_count is a denormalized counter (see migration 0016), kept in
+    // sync by a DB trigger on articles.story_id. A first attempt read this
+    // via a PostgREST embedded aggregate (articles!story_id(count)) instead,
+    // but that compiles to a GROUP BY over the whole articles table on every
+    // load — 1.4s+ and prone to breaching the anon role's 3s statement
+    // timeout. The counter makes this a plain column read.
+    .select("id, canonical_headline, summary, first_seen_at, image_url, article_count")
     // Only surface stories that already have a generated headline. Headline
     // generation is rate-limited (~20 Gemini requests/day), so headline-less
     // stories are created faster than they can be labelled; without this
@@ -29,7 +35,7 @@ export async function fetchStoryWithArticles(
 ): Promise<{ story: Story; articles: ArticleWithOutlet[] }> {
   const { data: story, error: storyError } = await supabase
     .from("stories")
-    .select("id, canonical_headline, summary, first_seen_at, image_url")
+    .select("id, canonical_headline, summary, first_seen_at, image_url, article_count")
     .eq("id", storyId)
     .single();
   if (storyError || !story) throw new Error(`Failed to fetch story: ${storyError?.message}`);

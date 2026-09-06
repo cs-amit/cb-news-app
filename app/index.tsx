@@ -70,11 +70,18 @@ function NavLink({
   );
 }
 
+type FeedView = "compare" | "single";
+
+// A story only supports a comparison if 2+ outlets have covered it —
+// below that there's nothing to compare, so it belongs in Single source.
+const COMPARE_MIN_SOURCES = 2;
+
 export default function FeedScreen() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [feedView, setFeedView] = useState<FeedView>("compare");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
@@ -314,10 +321,15 @@ export default function FeedScreen() {
   if (loading && stories.length === 0) return <ActivityIndicator style={{ flex: 1 }} />;
   if (error) return <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>Couldn't load stories: {error}</Text>;
 
+  const visibleStories =
+    feedView === "compare"
+      ? stories.filter((s) => s.article_count >= COMPARE_MIN_SOURCES)
+      : stories.filter((s) => s.article_count < COMPARE_MIN_SOURCES);
+
   return (
     <FlatList
       style={{ backgroundColor: colors.background }}
-      data={stories}
+      data={visibleStories}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View>
@@ -401,7 +413,60 @@ export default function FeedScreen() {
               </Text>
             </View>
           ) : null}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16, paddingTop: 0 }}>
+          <View style={{ flexDirection: "row", gap: 8, padding: 16, paddingBottom: 0 }}>
+            {(
+              [
+                { key: "compare" as const, label: "Compare", icon: "swap-horizontal-outline" as const },
+                { key: "single" as const, label: "Single source", icon: "document-text-outline" as const },
+              ]
+            ).map((tab) => {
+              const active = feedView === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  onPress={() => setFeedView(tab.key)}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: active ? colors.primary : colors.surfaceSubtle,
+                  }}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={15}
+                    color={active ? colors.background : colors.textSecondary}
+                  />
+                  <Text
+                    style={{
+                      fontFamily: active ? fonts.uiSemiBold : fonts.ui,
+                      color: active ? colors.background : colors.textSecondary,
+                    }}
+                  >
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {feedView === "compare" ? (
+            <Text
+              style={{
+                paddingHorizontal: 16,
+                paddingTop: 8,
+                fontSize: 12,
+                color: colors.textSecondary,
+                fontFamily: fonts.ui,
+              }}
+            >
+              Stories covered by 2 or more outlets, so you can compare how they're reported.
+            </Text>
+          ) : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16, paddingTop: 12 }}>
             <Pressable
               onPress={() => setSelectedTopic(null)}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
@@ -491,6 +556,16 @@ export default function FeedScreen() {
             <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
               {item.canonical_headline ?? "Untitled story"}
             </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+              <Ionicons
+                name={item.article_count >= COMPARE_MIN_SOURCES ? "layers-outline" : "document-outline"}
+                size={12}
+                color={colors.textSecondary}
+              />
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
+                {item.article_count} source{item.article_count === 1 ? "" : "s"}
+              </Text>
+            </View>
             {item.summary ? (
               <Text
                 style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}
@@ -518,13 +593,21 @@ export default function FeedScreen() {
       )}
       ListEmptyComponent={
         <View style={{ padding: 32, alignItems: "center", gap: 8 }}>
-          <Ionicons name="newspaper-outline" size={32} color={colors.textSecondary} />
+          <Ionicons
+            name={stories.length > 0 ? "swap-horizontal-outline" : "newspaper-outline"}
+            size={32}
+            color={colors.textSecondary}
+          />
           <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
-            {selectedTopic
-              ? `No stories tagged "${
-                  TOPIC_LABELS[selectedTopic as keyof typeof TOPIC_LABELS] ?? selectedTopic
-                }" yet.`
-              : "No stories yet."}
+            {(() => {
+              const topicSuffix = selectedTopic
+                ? ` tagged "${TOPIC_LABELS[selectedTopic as keyof typeof TOPIC_LABELS] ?? selectedTopic}"`
+                : "";
+              if (stories.length === 0) return `No stories${topicSuffix} yet.`;
+              return feedView === "compare"
+                ? `No stories${topicSuffix} with 2+ sources yet. Check Single source instead.`
+                : `No single-source stories${topicSuffix} right now — everything's in Compare.`;
+            })()}
           </Text>
         </View>
       }
