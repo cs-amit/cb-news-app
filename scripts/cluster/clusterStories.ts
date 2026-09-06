@@ -283,6 +283,23 @@ export async function clusterUnclusteredArticles(
   let articlesClustered = 0;
   let articlesMergedIntoExisting = 0;
 
+  // A story with many anchor rows (a large, active story) can have those
+  // rows split across several DISJOINT output clusters from a single
+  // clusterBySimilarity call -- clustering groups by pairwise similarity
+  // among the input articles, not by story identity, so nothing guarantees
+  // one story's anchors all land in the same cluster. That means a story
+  // merged away as a loser earlier in this loop can still be the naive
+  // target of a later, unrelated cluster in the SAME run. Track every
+  // loser -> winner redirect as we go and resolve through it before ever
+  // using a story id, so a later cluster follows the chain to whichever
+  // story is still actually alive instead of hitting the now-deleted row.
+  const storyAlias = new Map<string, string>();
+  const resolveStory = (id: string): string => {
+    let current = id;
+    while (storyAlias.has(current)) current = storyAlias.get(current)!;
+    return current;
+  };
+
   for (const cluster of clusters) {
     const anchorIds = cluster.articleIds.filter((id) => anchorStoryById.has(id));
     const newIds = cluster.articleIds.filter((id) => !anchorStoryById.has(id));
@@ -291,7 +308,7 @@ export async function clusterUnclusteredArticles(
     if (newIds.length === 0) continue;
 
     if (anchorIds.length > 0) {
-      const storyIds = anchorIds.map((id) => anchorStoryById.get(id) as string);
+      const storyIds = anchorIds.map((id) => resolveStory(anchorStoryById.get(id) as string));
       const distinct = new Set(storyIds);
       let targetStoryId: string;
       if (distinct.size > 1) {
@@ -321,6 +338,7 @@ export async function clusterUnclusteredArticles(
             `merging into ${survivor.id} (earliest) and assigning ${newIds.length} new article(s) to it`
         );
         await mergeStories(supabase, losers, survivor.id);
+        for (const loser of losers) storyAlias.set(loser, survivor.id);
         targetStoryId = survivor.id;
       } else {
         targetStoryId = storyIds[0];

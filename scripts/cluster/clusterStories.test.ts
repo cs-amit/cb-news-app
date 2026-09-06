@@ -363,6 +363,48 @@ describe("clusterUnclusteredArticles", () => {
     warnSpy.mockRestore();
   });
 
+  it("resolves a story merged away earlier in the same run when a later, unrelated cluster targets it", async () => {
+    // Reproduces a 2026-09-06 prod crash: a story with many anchor rows can
+    // have those rows split across multiple DISJOINT output clusters from a
+    // single clusterBySimilarity call (clustering groups by pairwise
+    // similarity among inputs, not by story identity). story-c's two anchor
+    // rows land in two different clusters here; the first cluster bridges
+    // story-c into story-old and deletes it, then the second cluster's own
+    // (non-bridging) target is still "story-c" per the anchor map built
+    // before either cluster ran -- it must resolve through the merge to
+    // story-old instead of updating articles into a story that's now gone.
+    const THIRD_EMBEDDING = [0, 0, 1]; // orthogonal to ANCHOR_EMBEDDING, keeps this cluster separate
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const { client, embedFn, queries } = scenario({
+      unclustered: [
+        { id: "new-1", title: "Bridges story-old and story-c", snippet: "s" },
+        { id: "new-2", title: "Only matches story-c's other anchor", snippet: "s" },
+      ],
+      anchors: [
+        { id: "anchor-old", story_id: "story-old", embedding: asPgVector(ANCHOR_EMBEDDING) },
+        { id: "anchor-c1", story_id: "story-c", embedding: asPgVector(ANCHOR_EMBEDDING) },
+        { id: "anchor-c2", story_id: "story-c", embedding: asPgVector(THIRD_EMBEDDING) },
+      ],
+      spannedStories: [
+        { id: "story-old", created_at: "2026-01-01T00:00:00Z" },
+        { id: "story-c", created_at: "2026-01-02T00:00:00Z" },
+      ],
+    });
+    // new-1 matches anchor-old/anchor-c1 (bridges them); new-2 matches only
+    // anchor-c2. embedFn is called once per unclustered article, in order.
+    embedFn.mockResolvedValueOnce(ANCHOR_EMBEDDING).mockResolvedValueOnce(THIRD_EMBEDDING);
+
+    const result = await clusterUnclusteredArticles(client, embedFn);
+
+    expect(result.articlesMergedIntoExisting).toBe(2);
+    const assignments = storyAssignments(queries).filter((a) => a.payload.story_id);
+    // Every reassignment -- including new-2's, via the resolved alias --
+    // lands on the surviving story-old, never on the deleted story-c.
+    for (const a of assignments) expect(a.payload).toEqual({ story_id: "story-old" });
+    expect(assignments.some((a) => a.ids?.includes("new-2"))).toBe(true);
+    warnSpy.mockRestore();
+  });
+
   it("ignores anchors whose stored embedding has a different dimension", async () => {
     const { client, embedFn, queries } = scenario({
       anchors: [{ id: "anchor-1", story_id: "story-existing", embedding: asPgVector([1, 0]) }],
