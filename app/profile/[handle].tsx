@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { getUserId } from "../../lib/auth";
@@ -7,9 +8,12 @@ import {
   fetchPublicProfile,
   fetchPublicLists,
   fetchUserLists,
+  fetchOwnCompassStats,
   PublicProfile,
   ListRow,
+  OwnCompassStats,
 } from "../../lib/queries";
+import { CompassGauge, CompassDistributionBar } from "../../components/CompassGauge";
 import { colors, fonts } from "../../lib/theme";
 
 export default function ProfileScreen() {
@@ -18,6 +22,7 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [lists, setLists] = useState<ListRow[]>([]);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [ownCompassStats, setOwnCompassStats] = useState<OwnCompassStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +46,14 @@ export default function ProfileScreen() {
           ? await fetchUserLists(supabase, found.id)
           : await fetchPublicLists(supabase, found.id);
         setLists(visibleLists);
+
+        // Sample size / distribution are only ever computed from the
+        // viewer's OWN poll answers (fetchOwnPollResponses is scoped to
+        // user_id === the caller), so this is deliberately skipped for
+        // other people's profiles rather than silently showing nothing.
+        if (own) {
+          setOwnCompassStats(await fetchOwnCompassStats(supabase, found.id));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load profile.");
       } finally {
@@ -63,13 +76,28 @@ export default function ProfileScreen() {
         @{profile.handle}
       </Text>
       {profile.compass_position !== null ? (
-        <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textSecondary }}>
-          Compass position: {Math.round(profile.compass_position)}
-        </Text>
+        <View style={{ marginTop: 12 }}>
+          <CompassGauge position={profile.compass_position} />
+          {isOwnProfile && ownCompassStats ? (
+            <>
+              <CompassDistributionBar distribution={ownCompassStats.distribution} />
+              {ownCompassStats.weekDelta > 0 ? (
+                <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui, marginTop: 4 }}>
+                  Moved {ownCompassStats.weekDelta.toFixed(1)} point
+                  {ownCompassStats.weekDelta === 1 ? "" : "s"} this week
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+        </View>
       ) : null}
       {isOwnProfile ? (
-        <Pressable onPress={() => router.push("/quiz")} style={{ marginTop: 8 }}>
-          <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz →</Text>
+        <Pressable
+          onPress={() => router.push("/quiz")}
+          style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 6 }}
+        >
+          <Ionicons name="compass-outline" size={14} color={colors.primary} />
+          <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz</Text>
         </Pressable>
       ) : null}
       <Text style={{ marginTop: 20, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>

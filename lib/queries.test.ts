@@ -2,7 +2,7 @@ import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from ".
 import { fetchConflictFlags, fetchFactChecks } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
-import { applyPollDrift } from "./queries";
+import { applyPollDrift, fetchOwnPollResponses, fetchOwnCompassStats } from "./queries";
 import {
   claimHandle,
   completePendingHandleClaim,
@@ -1027,5 +1027,86 @@ describe("applyPollDrift", () => {
     await applyPollDrift(client, "user-1", "friendly");
 
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("fetchOwnPollResponses", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const eq = jest.fn().mockResolvedValue(result);
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from, select, eq };
+  }
+
+  it("returns the response values for the given user", async () => {
+    const { client, from, select, eq } = makeMockSupabase({
+      data: [{ response: "critical" }, { response: "friendly" }],
+      error: null,
+    });
+    const result = await fetchOwnPollResponses(client, "user-1");
+    expect(from).toHaveBeenCalledWith("outlet_poll_responses");
+    expect(select).toHaveBeenCalledWith("response");
+    expect(eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(result).toEqual(["critical", "friendly"]);
+  });
+
+  it("returns an empty array when the user has answered no polls", async () => {
+    const { client } = makeMockSupabase({ data: [], error: null });
+    expect(await fetchOwnPollResponses(client, "user-1")).toEqual([]);
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchOwnPollResponses(client, "user-1")).rejects.toThrow(
+      "Failed to fetch poll responses: boom"
+    );
+  });
+});
+
+describe("fetchOwnCompassStats", () => {
+  function makeMockSupabase(profileResult: { data: any; error: any }, responsesData: any[]) {
+    const from = jest.fn((table: string) => {
+      if (table === "profiles") {
+        const maybeSingle = jest.fn().mockResolvedValue(profileResult);
+        const eq = jest.fn().mockReturnValue({ maybeSingle });
+        const select = jest.fn().mockReturnValue({ eq });
+        return { select };
+      }
+      // outlet_poll_responses
+      const eq = jest.fn().mockResolvedValue({ data: responsesData, error: null });
+      const select = jest.fn().mockReturnValue({ eq });
+      return { select };
+    });
+    return { client: { from } as any, from };
+  }
+
+  it("combines the profile's position/week-delta with the poll-answer distribution", async () => {
+    const { client } = makeMockSupabase(
+      { data: { compass_position: 42, compass_week_delta: 2 }, error: null },
+      [{ response: "critical" }, { response: "friendly" }]
+    );
+    const result = await fetchOwnCompassStats(client, "user-1");
+    expect(result).toEqual({
+      position: 42,
+      weekDelta: 2,
+      distribution: { critical: 50, balanced: 0, friendly: 50, total: 2 },
+    });
+  });
+
+  it("returns null when the user hasn't taken the quiz yet", async () => {
+    const { client } = makeMockSupabase({ data: { compass_position: null, compass_week_delta: 0 }, error: null }, []);
+    expect(await fetchOwnCompassStats(client, "user-1")).toBeNull();
+  });
+
+  it("returns null when there is no profile row at all", async () => {
+    const { client } = makeMockSupabase({ data: null, error: null }, []);
+    expect(await fetchOwnCompassStats(client, "user-1")).toBeNull();
+  });
+
+  it("throws when Supabase returns an error fetching the profile", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } }, []);
+    await expect(fetchOwnCompassStats(client, "user-1")).rejects.toThrow(
+      "Failed to fetch compass stats: boom"
+    );
   });
 });

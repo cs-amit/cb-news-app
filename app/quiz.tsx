@@ -4,7 +4,9 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/auth";
 import { QUIZ_QUESTIONS, scoreQuizAnswers } from "../lib/compass";
-import { setCompassPosition } from "../lib/queries";
+import { setCompassPosition, fetchOwnPollResponses } from "../lib/queries";
+import { computeCompassDistribution, CompassDistribution } from "../lib/compassStats";
+import { CompassGauge, CompassDistributionBar } from "../components/CompassGauge";
 import { colors, fonts } from "../lib/theme";
 
 const LIKERT_OPTIONS: { label: string; value: number }[] = [
@@ -20,6 +22,7 @@ export default function QuizScreen() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "done">("idle");
   const [resultPosition, setResultPosition] = useState<number | null>(null);
+  const [distribution, setDistribution] = useState<CompassDistribution | null>(null);
 
   const allAnswered = QUIZ_QUESTIONS.every((q) => typeof answers[q.id] === "number");
 
@@ -29,6 +32,10 @@ export default function QuizScreen() {
     try {
       const userId = await getUserId(supabase);
       await setCompassPosition(supabase, userId, position);
+      // A retaken quiz can follow an existing poll-answer history — show it
+      // alongside the fresh position rather than pretending it's day one.
+      const responses = await fetchOwnPollResponses(supabase, userId);
+      setDistribution(computeCompassDistribution(responses));
     } catch (err) {
       console.error("Failed to save compass position:", err);
     }
@@ -40,11 +47,14 @@ export default function QuizScreen() {
     return (
       <View style={{ padding: 16, backgroundColor: colors.background, flex: 1 }}>
         <Text style={{ fontSize: 18, fontFamily: fonts.headline, color: colors.textPrimary }}>
-          Your position: {resultPosition}
+          Your position
         </Text>
-        <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
-          -100 is government-critical, +100 is government-friendly. This is a badge, not a filter
-          — it never changes which stories or outlets you see.
+        <View style={{ marginTop: 16 }}>
+          <CompassGauge position={resultPosition} />
+        </View>
+        {distribution ? <CompassDistributionBar distribution={distribution} /> : null}
+        <Text style={{ marginTop: 16, fontFamily: fonts.ui, color: colors.textSecondary }}>
+          This is a badge, not a filter — it never changes which stories or outlets you see.
         </Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
           <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.primary }}>Done</Text>

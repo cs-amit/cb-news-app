@@ -4,6 +4,7 @@ import { OutletSummary, computeSilentOutlets } from "./silence";
 import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
 import { PollResponseValue } from "./polls";
 import { computeDrift, PollResponseForDrift } from "./compassDrift";
+import { computeCompassDistribution, CompassDistribution } from "./compassStats";
 
 export async function fetchRecentStories(supabase: SupabaseClient, topic?: string): Promise<Story[]> {
   let query = supabase
@@ -315,6 +316,52 @@ export async function applyPollDrift(
     })
     .eq("id", userId);
   if (updateError) throw new Error(`Failed to save compass drift: ${updateError.message}`);
+}
+
+/** Every response the given user has personally submitted to an outlet poll — the raw material for their own compass distribution, never another user's. */
+export async function fetchOwnPollResponses(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<PollResponseForDrift[]> {
+  const { data, error } = await supabase
+    .from("outlet_poll_responses")
+    .select("response")
+    .eq("user_id", userId);
+  if (error) throw new Error(`Failed to fetch poll responses: ${error.message}`);
+  return (data ?? []).map((row: { response: PollResponseForDrift }) => row.response);
+}
+
+export interface OwnCompassStats {
+  position: number;
+  weekDelta: number;
+  distribution: CompassDistribution;
+}
+
+/**
+ * Everything the compass gauge needs for the viewer's OWN profile: the raw
+ * position + this week's movement (only ever readable for your own row,
+ * unlike public_profiles' gated position), plus the poll-answer distribution
+ * behind it. Returns null before the quiz has been taken — same guard
+ * applyPollDrift uses, since there's nothing meaningful to show yet.
+ */
+export async function fetchOwnCompassStats(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<OwnCompassStats | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("compass_position, compass_week_delta")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to fetch compass stats: ${error.message}`);
+  if (!data || data.compass_position === null) return null;
+
+  const responses = await fetchOwnPollResponses(supabase, userId);
+  return {
+    position: Number(data.compass_position),
+    weekDelta: Number(data.compass_week_delta ?? 0),
+    distribution: computeCompassDistribution(responses),
+  };
 }
 
 export interface PublicProfile {
