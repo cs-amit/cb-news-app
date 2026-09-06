@@ -70,7 +70,7 @@ export async function fetchSilentOutlets(
   // every known outlet has been seen active.
   const { data: allOutlets, error: outletsError } = await supabase
     .from("outlets")
-    .select("id, name, is_youtube");
+    .select("id, name, is_youtube, rss_url");
   if (outletsError) throw new Error(`Failed to fetch outlet details: ${outletsError.message}`);
   const outlets = (allOutlets ?? []) as OutletSummary[];
   if (outlets.length === 0) return [];

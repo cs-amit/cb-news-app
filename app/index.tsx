@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { FlatList, Text, Pressable, View, ActivityIndicator, TextInput } from "react-native";
+import {
+  FlatList,
+  Text,
+  Pressable,
+  View,
+  ActivityIndicator,
+  TextInput,
+  StyleProp,
+  ViewStyle,
+} from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
@@ -32,6 +43,32 @@ const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
 const UPGRADE_PROMPT_DISMISSED_KEY = "upgradePromptDismissed";
 
 const TOPICS = TOPICS_ALL.filter((t) => t !== "other");
+
+function NavLink({
+  icon,
+  label,
+  onPress,
+  style,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+        style,
+      ]}
+    >
+      <Ionicons name={icon} size={16} color={colors.primary} />
+      <Text style={{ flex: 1, color: colors.primary, fontFamily: fonts.ui }}>{label}</Text>
+      <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+    </Pressable>
+  );
+}
 
 export default function FeedScreen() {
   const [stories, setStories] = useState<Story[]>([]);
@@ -349,9 +386,20 @@ export default function FeedScreen() {
             </View>
           ) : null}
           {profile && profile.streak_count > 0 ? (
-            <Text style={{ padding: 16, paddingBottom: 0, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
-              {profile.streak_count}-day streak · {profile.sides_seen_total} sides seen
-            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                padding: 16,
+                paddingBottom: 0,
+              }}
+            >
+              <Ionicons name="flame" size={16} color={colors.red} />
+              <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+                {profile.streak_count}-day streak · {profile.sides_seen_total} sides seen
+              </Text>
+            </View>
           ) : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16, paddingTop: 0 }}>
             <Pressable
@@ -384,48 +432,94 @@ export default function FeedScreen() {
               </Pressable>
             ))}
           </View>
-          <Pressable onPress={() => router.push("/methodology")} style={{ padding: 16 }}>
-            <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>How are these badges calculated? Methodology →</Text>
-          </Pressable>
-          <Pressable onPress={() => router.push("/quiz")} style={{ padding: 16, paddingTop: 0 }}>
-            <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>
-              {profile?.compass_quiz_taken_at
-                ? "Your compass position →"
-                : "Where do you stand? Take the compass quiz →"}
-            </Text>
-          </Pressable>
+          <NavLink
+            icon="information-circle-outline"
+            label="How are these badges calculated? Methodology"
+            onPress={() => router.push("/methodology")}
+            style={{ paddingTop: 16 }}
+          />
+          <NavLink
+            icon="compass-outline"
+            label={
+              profile?.compass_quiz_taken_at
+                ? "Your compass position"
+                : "Where do you stand? Take the compass quiz"
+            }
+            onPress={() => router.push("/quiz")}
+          />
           {ownHandle ? (
-            <Pressable onPress={() => router.push(`/profile/${ownHandle}`)} style={{ padding: 16, paddingTop: 0 }}>
-              <Text style={{ color: colors.primary, fontFamily: fonts.ui }}>My profile →</Text>
-            </Pressable>
+            <NavLink
+              icon="person-circle-outline"
+              label="My profile"
+              onPress={() => router.push(`/profile/${ownHandle}`)}
+            />
           ) : null}
         </View>
       }
       renderItem={({ item }) => (
         <Pressable
           onPress={() => router.push(`/story/${item.id}`)}
-          style={{ padding: 16, borderBottomWidth: 1, borderColor: colors.border }}
+          style={{
+            flexDirection: "row",
+            gap: 12,
+            padding: 16,
+            borderBottomWidth: 1,
+            borderColor: colors.border,
+          }}
         >
-          <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
-            {item.canonical_headline ?? "Untitled story"}
-          </Text>
-          {item.summary ? <Text style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}>{item.summary}</Text> : null}
-          {repostsListId ? (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                handleRepost(item.id);
+          {item.image_url ? (
+            <Image
+              source={{ uri: item.image_url }}
+              style={{ width: 72, height: 72, borderRadius: 8, backgroundColor: colors.surfaceSubtle }}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 8,
+                backgroundColor: colors.surfaceSubtle,
+                alignItems: "center",
+                justifyContent: "center",
               }}
-              style={{ marginTop: 6 }}
             >
-              <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.ui }}>Repost to my profile</Text>
-            </Pressable>
-          ) : null}
+              <Ionicons name="newspaper-outline" size={24} color={colors.textSecondary} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
+              {item.canonical_headline ?? "Untitled story"}
+            </Text>
+            {item.summary ? (
+              <Text
+                style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}
+                numberOfLines={2}
+              >
+                {item.summary}
+              </Text>
+            ) : null}
+            {repostsListId ? (
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleRepost(item.id);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
+              >
+                <Ionicons name="bookmark-outline" size={13} color={colors.primary} />
+                <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.ui }}>
+                  Repost to my profile
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
         </Pressable>
       )}
       ListEmptyComponent={
-        <View style={{ padding: 16 }}>
-          <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>
+        <View style={{ padding: 32, alignItems: "center", gap: 8 }}>
+          <Ionicons name="newspaper-outline" size={32} color={colors.textSecondary} />
+          <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
             {selectedTopic
               ? `No stories tagged "${
                   TOPIC_LABELS[selectedTopic as keyof typeof TOPIC_LABELS] ?? selectedTopic

@@ -1,9 +1,9 @@
 import { computeSilentOutlets, OutletSummary } from "./silence";
 
 const OUTLETS: OutletSummary[] = [
-  { id: "o1", name: "A", is_youtube: false },
-  { id: "o2", name: "B", is_youtube: false },
-  { id: "o3", name: "C", is_youtube: true },
+  { id: "o1", name: "A", is_youtube: false, rss_url: "https://a.com/rss" },
+  { id: "o2", name: "B", is_youtube: false, rss_url: "https://b.com/rss" },
+  { id: "o3", name: "C", is_youtube: true, rss_url: "https://youtube.com/feeds/videos.xml?channel_id=1" },
 ];
 
 describe("computeSilentOutlets", () => {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollView, Text, ActivityIndicator, Linking, Pressable, View, Share } from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { getUserId } from "../../lib/auth";
@@ -19,16 +21,57 @@ import {
 } from "../../lib/queries";
 import { shouldShowPoll } from "../../lib/polls";
 import { OutletSummary } from "../../lib/silence";
+import { outletFaviconUrl } from "../../lib/outletFavicon";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { buildShareText } from "../../lib/shareCopy";
 import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
 import { colors, fonts, verdictColors, pollColors, Verdict, PollResponse } from "../../lib/theme";
+
+const VERDICT_ICONS: Record<Verdict, keyof typeof Ionicons.glyphMap> = {
+  True: "checkmark-circle",
+  False: "close-circle",
+  Misleading: "warning",
+  Unverified: "help-circle",
+};
+
+/** Small circular outlet mark: favicon when we can derive one, initial otherwise. */
+function OutletMark({ name, rssUrl, size = 20 }: { name: string; rssUrl: string | null; size?: number }) {
+  const favicon = outletFaviconUrl(rssUrl);
+  if (favicon) {
+    return (
+      <Image
+        source={{ uri: favicon }}
+        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.surfaceSubtle }}
+      />
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: colors.surfaceSubtle,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ fontSize: size * 0.5, fontFamily: fonts.uiSemiBold, color: colors.textSecondary }}>
+        {name.charAt(0).toUpperCase()}
+      </Text>
+    </View>
+  );
+}
 
 // Shared country baseline every outlet starts from (RSF World Press Freedom
 // Index score for India), mirrored from the seed data and the Methodology
 // screen. Used only to label a score as the shared baseline vs. an
 // outlet-specific penalty — never to compute a score.
 const INDIA_BASELINE_FREEDOM_SCORE = 32;
+
+// How many silent-outlet marks to show before collapsing behind "Show all" —
+// the whole point of this fix is not dumping every name into one sentence.
+const SILENT_PREVIEW_COUNT = 6;
 
 export default function StoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,6 +84,7 @@ export default function StoryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [pollTallies, setPollTallies] = useState<Record<string, PollTally>>({});
+  const [showAllSilent, setShowAllSilent] = useState(false);
 
   async function handlePollResponse(outletId: string, response: "critical" | "balanced" | "friendly") {
     if (!userId) return;
@@ -100,9 +144,12 @@ export default function StoryScreen() {
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
   if (error || !story)
     return (
-      <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>
-        Couldn't load story: {error}
-      </Text>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 8 }}>
+        <Ionicons name="alert-circle-outline" size={32} color={colors.textSecondary} />
+        <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
+          Couldn't load story: {error}
+        </Text>
+      </View>
     );
 
   const flagsByOutlet = new Map(conflictFlags.map((f) => [f.outlet_id, f]));
@@ -110,7 +157,15 @@ export default function StoryScreen() {
   const framingSpectrum = pickFramingSpectrum(articles);
 
   return (
-    <ScrollView style={{ padding: 16, backgroundColor: colors.background }}>
+    <ScrollView style={{ backgroundColor: colors.background }}>
+      {story.image_url ? (
+        <Image
+          source={{ uri: story.image_url }}
+          style={{ width: "100%", height: 200, backgroundColor: colors.surfaceSubtle }}
+          contentFit="cover"
+        />
+      ) : null}
+      <View style={{ padding: 16 }}>
       <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>
         {story.canonical_headline}
       </Text>
@@ -130,9 +185,10 @@ export default function StoryScreen() {
             ),
           }).catch((err) => console.error("Share failed:", err));
         }}
-        style={{ marginTop: 12 }}
+        style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 6 }}
       >
-        <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Share this story →</Text>
+        <Ionicons name="share-social-outline" size={16} color={colors.primary} />
+        <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Share this story</Text>
       </Pressable>
       {framingSpectrum.length === 2 ? (
         <View style={{ marginTop: 24 }}>
@@ -205,21 +261,28 @@ export default function StoryScreen() {
             }}
             style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+              {outlet ? <OutletMark name={outlet.name} rssUrl={outlet.rss_url} /> : null}
               <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
                 {outlet?.name ?? "Unknown outlet"}
               </Text>
               {outlet?.is_youtube ? (
-                <Text
+                <View
                   style={{
-                    marginLeft: 6,
-                    fontSize: 11,
-                    color: colors.red,
-                    fontFamily: fonts.uiSemiBold,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 2,
+                    backgroundColor: colors.red,
+                    borderRadius: 8,
+                    paddingHorizontal: 6,
+                    paddingVertical: 1,
                   }}
                 >
-                  YOUTUBE
-                </Text>
+                  <Ionicons name="logo-youtube" size={11} color={colors.background} />
+                  <Text style={{ fontSize: 10, color: colors.background, fontFamily: fonts.uiSemiBold }}>
+                    YOUTUBE
+                  </Text>
+                </View>
               ) : null}
             </View>
             <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>{article.title}</Text>
@@ -242,9 +305,12 @@ export default function StoryScreen() {
               </Text>
             ) : null}
             {flag ? (
-              <Text style={{ marginTop: 2, fontSize: 12, color: colors.red, fontFamily: fonts.ui }}>
-                ⚠ Owner mentioned in this story ("{flag.matched_entity}"): {flag.evidence_text}
-              </Text>
+              <View style={{ flexDirection: "row", gap: 4, marginTop: 4, alignItems: "flex-start" }}>
+                <Ionicons name="warning" size={13} color={colors.red} style={{ marginTop: 1 }} />
+                <Text style={{ flex: 1, fontSize: 12, color: colors.red, fontFamily: fonts.ui }}>
+                  Owner mentioned in this story ("{flag.matched_entity}"): {flag.evidence_text}
+                </Text>
+              </View>
             ) : null}
             {comparisons.length > 0 ? (
               <View style={{ marginTop: 4 }}>
@@ -317,10 +383,29 @@ export default function StoryScreen() {
       })}
       {silentOutlets.length > 0 ? (
         <View style={{ marginTop: 24 }}>
-          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>Not yet covered by</Text>
-          <Text style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}>
-            {silentOutlets.map((o) => o.name).join(", ")}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="eye-off-outline" size={15} color={colors.textSecondary} />
+            <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+              Not yet covered by {silentOutlets.length} outlet{silentOutlets.length === 1 ? "" : "s"}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+            {(showAllSilent ? silentOutlets : silentOutlets.slice(0, SILENT_PREVIEW_COUNT)).map((o) => (
+              <View key={o.id} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <OutletMark name={o.name} rssUrl={o.rss_url} size={16} />
+                <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
+                  {o.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+          {silentOutlets.length > SILENT_PREVIEW_COUNT ? (
+            <Pressable onPress={() => setShowAllSilent((prev) => !prev)} style={{ marginTop: 8 }}>
+              <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.uiSemiBold }}>
+                {showAllSilent ? "Show less" : `Show all ${silentOutlets.length}`}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
       {factChecks.length > 0 ? (
@@ -338,6 +423,9 @@ export default function StoryScreen() {
               <View
                 style={{
                   alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
                   paddingVertical: 4,
                   paddingHorizontal: 10,
                   borderRadius: 12,
@@ -345,6 +433,11 @@ export default function StoryScreen() {
                     verdictColors[factCheck.verdict as Verdict]?.background ?? colors.surfaceSubtle,
                 }}
               >
+                <Ionicons
+                  name={VERDICT_ICONS[factCheck.verdict as Verdict] ?? "help-circle"}
+                  size={13}
+                  color={verdictColors[factCheck.verdict as Verdict]?.text ?? colors.textSecondary}
+                />
                 <Text
                   style={{
                     fontSize: 12,
@@ -362,6 +455,7 @@ export default function StoryScreen() {
           ))}
         </View>
       ) : null}
+      </View>
     </ScrollView>
   );
 }

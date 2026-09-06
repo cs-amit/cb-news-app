@@ -2,6 +2,7 @@ export interface OutletSummary {
   id: string;
   name: string;
   is_youtube: boolean;
+  rss_url: string | null;
 }
 
 // Spec requirement: guard against false positives from feed delay — a story
