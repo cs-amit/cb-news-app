@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { clusterBySimilarity, EmbeddedArticle } from "./similarity";
 import { extractEntityKeys } from "../../lib/entities";
 import { chunk } from "../../lib/chunk";
+import { mergeStories } from "./mergeStories";
 
 export const SIMILARITY_THRESHOLD_HIGH = 0.86;
 export const SIMILARITY_THRESHOLD_MID = 0.78;
@@ -292,18 +293,38 @@ export async function clusterUnclusteredArticles(
     if (anchorIds.length > 0) {
       const storyIds = anchorIds.map((id) => anchorStoryById.get(id) as string);
       const distinct = new Set(storyIds);
+      let targetStoryId: string;
       if (distinct.size > 1) {
-        // Transitive single-link chaining can bridge two previously separate
-        // stories. We don't merge the stories themselves (that would need
-        // re-pointing every article and deleting a row the feed may link to);
-        // we deterministically pick the first anchor's story for the new
-        // articles and log it for observability.
+        // Transitive single-link chaining has bridged multiple previously
+        // separate stories that are, by the same similarity signal already
+        // trusted everywhere else in this function, the same underlying
+        // event. Consolidate them into the earliest-created one (matching
+        // the founder_article_id convention: the earliest article is a
+        // faithful stand-in for the story's true origin) rather than
+        // silently discarding the other N-1 stories' existence, which
+        // otherwise left them to grow independently forever.
+        const { data: spannedStories, error: spanError } = await supabase
+          .from("stories")
+          .select("id, created_at")
+          .in("id", [...distinct]);
+        if (spanError || !spannedStories || spannedStories.length === 0) {
+          throw new Error(
+            `Failed to fetch spanned stories for merge: ${spanError?.message ?? "no rows returned"}`
+          );
+        }
+        const survivor = spannedStories.reduce((earliest, s) =>
+          new Date(s.created_at) < new Date(earliest.created_at) ? s : earliest
+        );
+        const losers = [...distinct].filter((id) => id !== survivor.id);
         console.warn(
           `Cluster spans ${distinct.size} existing stories (${[...distinct].join(", ")}); ` +
-            `assigning ${newIds.length} new article(s) to ${storyIds[0]}`
+            `merging into ${survivor.id} (earliest) and assigning ${newIds.length} new article(s) to it`
         );
+        await mergeStories(supabase, losers, survivor.id);
+        targetStoryId = survivor.id;
+      } else {
+        targetStoryId = storyIds[0];
       }
-      const targetStoryId = storyIds[0];
       const { error: mergeError } = await supabase
         .from("articles")
         .update({ story_id: targetStoryId })

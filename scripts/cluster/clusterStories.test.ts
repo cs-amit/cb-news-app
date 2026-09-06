@@ -14,6 +14,7 @@ const CHAIN_METHODS = [
   "select",
   "insert",
   "update",
+  "delete",
   "is",
   "not",
   "or",
@@ -76,7 +77,12 @@ interface ScenarioOptions {
   storyFounders?: any[];
   /** Rows returned for `articles.select("id, embedding, entity_keys").in(...)` (founder lookup). */
   founderArticles?: any[];
+  /** Rows returned for `stories.select("id, created_at").in(...)` (bridge-merge survivor pick). */
+  spannedStories?: any[];
 }
+
+/** Tables mergeStories() checks for dedupe-aware reassignment; empty unless a test cares. */
+const MERGE_DEPENDENT_TABLES = ["story_conflict_flags", "user_story_views", "outlet_poll_responses", "list_items"];
 
 function scenario(opts: ScenarioOptions = {}) {
   const unclustered = opts.unclustered ?? [{ id: "new-1", title: "New coverage", snippet: "s" }];
@@ -87,9 +93,23 @@ function scenario(opts: ScenarioOptions = {}) {
   const mock = makeMockSupabase((q) => {
     const inIds = (): string[] => q.calls.find((c) => c.method === "in")?.args[1] ?? [];
 
+    if (MERGE_DEPENDENT_TABLES.includes(q.table)) {
+      return { data: [], error: null };
+    }
+    if (q.table === "fact_checks") {
+      return { data: null, error: null }; // update(matched_story_id) during a bridge merge
+    }
     if (q.table === "stories") {
       if (has(q.calls, "insert")) {
         return { data: { id: "story-new" }, error: null };
+      }
+      if (has(q.calls, "delete")) {
+        return { data: null, error: null }; // loser stories removed during a bridge merge
+      }
+      const selectCall = q.calls.find((c) => c.method === "select");
+      if (selectCall?.args[0] === "id, created_at") {
+        const ids = inIds();
+        return { data: (opts.spannedStories ?? []).filter((r) => ids.includes(r.id)), error: null };
       }
       // Founder lookup: select("id, founder_article_id").in("id", storyIds)
       const ids = inIds();
@@ -313,6 +333,34 @@ describe("clusterUnclusteredArticles", () => {
     for (const assignment of storyAssignments(queries)) {
       expect(assignment.ids).not.toContain("anchor-1");
     }
+  });
+
+  it("merges two existing stories a new article bridges, into the earlier one", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const { client, embedFn, queries } = scenario({
+      anchors: [
+        { id: "anchor-old", story_id: "story-old", embedding: asPgVector(ANCHOR_EMBEDDING) },
+        { id: "anchor-new", story_id: "story-new", embedding: asPgVector(ANCHOR_EMBEDDING) },
+      ],
+      embedding: ANCHOR_EMBEDDING, // cosine 1.0 vs both anchors -> unconditional high-threshold bridge
+      spannedStories: [
+        { id: "story-old", created_at: "2026-01-01T00:00:00Z" },
+        { id: "story-new", created_at: "2026-01-02T00:00:00Z" },
+      ],
+    });
+
+    const result = await clusterUnclusteredArticles(client, embedFn);
+
+    expect(result.articlesMergedIntoExisting).toBe(1);
+    expect(storyAssignments(queries)).toEqual([
+      { payload: { story_id: "story-old" }, ids: ["story-new"] }, // mergeStories' reassignment
+      { payload: { story_id: "story-old" }, ids: ["new-1"] }, // the new article that triggered the bridge
+    ]);
+    // The now-empty loser story was deleted.
+    const deleteQuery = queries.find((q) => q.table === "stories" && has(q.calls, "delete"));
+    expect(deleteQuery).toBeDefined();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("merging into story-old"));
+    warnSpy.mockRestore();
   });
 
   it("ignores anchors whose stored embedding has a different dimension", async () => {
