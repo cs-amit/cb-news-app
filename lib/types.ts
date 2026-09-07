@@ -7,6 +7,16 @@ export interface Story {
   article_count: number;
 }
 
+// A source surfaced by the discovery search (sub-project 5), not a curated
+// outlet — deliberately has no scores/ownership, see migration 0017.
+export interface DiscoveredArticle {
+  id: string;
+  outlet_name: string;
+  url: string;
+  title: string;
+  published_at: string | null;
+}
+
 export interface OutletOwnership {
   owner: string;
   owner_aliases?: string[];

@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Story, ArticleWithOutlet, ConflictFlag } from "./types";
+import { Story, ArticleWithOutlet, ConflictFlag, DiscoveredArticle } from "./types";
 import { OutletSummary, computeSilentOutlets } from "./silence";
 import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
 import { PollResponseValue } from "./polls";
@@ -50,6 +50,22 @@ export async function fetchStoryWithArticles(
   if (articlesError) throw new Error(`Failed to fetch articles: ${articlesError.message}`);
 
   return { story, articles: (articles ?? []) as unknown as ArticleWithOutlet[] };
+}
+
+// Discovered sources are unscored and never fail the story page for it — a
+// missing/failing fetch here just means the "Also found via search" section
+// doesn't render, same fail-soft treatment as conflict flags/silent outlets.
+export async function fetchDiscoveredArticles(
+  supabase: SupabaseClient,
+  storyId: string
+): Promise<DiscoveredArticle[]> {
+  const { data, error } = await supabase
+    .from("discovered_articles")
+    .select("id, outlet_name, url, title, published_at")
+    .eq("story_id", storyId)
+    .order("published_at", { ascending: false });
+  if (error) throw new Error(`Failed to fetch discovered articles: ${error.message}`);
+  return data ?? [];
 }
 
 const ACTIVE_OUTLET_WINDOW_DAYS = 7;

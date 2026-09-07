@@ -221,4 +221,21 @@ describe("mergeStories", () => {
 
     expect(tables.fact_checks[0].matched_story_id).toBe("winner");
   });
+
+  it("reassigns discovered_articles.story_id with no dedupe needed", async () => {
+    const tables = {
+      articles: [],
+      story_conflict_flags: [],
+      user_story_views: [],
+      outlet_poll_responses: [],
+      list_items: [],
+      fact_checks: [],
+      discovered_articles: [{ id: "da1", story_id: "loser-1" }],
+    };
+    const { client } = makeMockSupabase(tables);
+
+    await mergeStories(client, ["loser-1"], "winner");
+
+    expect((tables as any).discovered_articles[0].story_id).toBe("winner");
+  });
 });

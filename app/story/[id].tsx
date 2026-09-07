@@ -10,6 +10,7 @@ import {
   fetchConflictFlags,
   fetchSilentOutlets,
   fetchFactChecks,
+  fetchDiscoveredArticles,
   recordArticleView,
   recomputeAndSaveStreak,
   submitPollResponse,
@@ -24,7 +25,7 @@ import { OutletSummary } from "../../lib/silence";
 import { outletFaviconUrl } from "../../lib/outletFavicon";
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { buildShareText } from "../../lib/shareCopy";
-import { Story, ArticleWithOutlet, ConflictFlag } from "../../lib/types";
+import { Story, ArticleWithOutlet, ConflictFlag, DiscoveredArticle } from "../../lib/types";
 import { colors, fonts, verdictColors, pollColors, Verdict, PollResponse } from "../../lib/theme";
 
 const VERDICT_ICONS: Record<Verdict, keyof typeof Ionicons.glyphMap> = {
@@ -80,6 +81,7 @@ export default function StoryScreen() {
   const [conflictFlags, setConflictFlags] = useState<ConflictFlag[]>([]);
   const [silentOutlets, setSilentOutlets] = useState<OutletSummary[]>([]);
   const [factChecks, setFactChecks] = useState<FactCheck[]>([]);
+  const [discoveredArticles, setDiscoveredArticles] = useState<DiscoveredArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -120,16 +122,18 @@ export default function StoryScreen() {
         // loaded story and show a full error screen. Fail soft: log and
         // leave conflictFlags/silentOutlets at their empty-array default.
         try {
-          const [flags, silent, checks, tallies] = await Promise.all([
+          const [flags, silent, checks, tallies, discovered] = await Promise.all([
             fetchConflictFlags(supabase, id),
             fetchSilentOutlets(supabase, id, story.first_seen_at),
             fetchFactChecks(supabase, id),
             fetchPollTallies(supabase, id),
+            fetchDiscoveredArticles(supabase, id),
           ]);
           setConflictFlags(flags);
           setSilentOutlets(silent);
           setFactChecks(checks);
           setPollTallies(tallies);
+          setDiscoveredArticles(discovered);
         } catch (err) {
           console.error(
             "Failed to load story badges:",
@@ -450,6 +454,33 @@ export default function StoryScreen() {
               </View>
               <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
                 {factCheck.claim}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      {discoveredArticles.length > 0 ? (
+        <View style={{ marginTop: 24 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="search-outline" size={15} color={colors.textSecondary} />
+            <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+              Also found via search
+            </Text>
+          </View>
+          <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui, marginTop: 2 }}>
+            Not part of our vetted outlet list — unscored, shown for extra context only.
+          </Text>
+          {discoveredArticles.map((discovered) => (
+            <Pressable
+              key={discovered.id}
+              onPress={() => Linking.openURL(discovered.url)}
+              style={{ marginTop: 10 }}
+            >
+              <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary, fontSize: 13 }}>
+                {discovered.outlet_name}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
+                {discovered.title}
               </Text>
             </Pressable>
           ))}

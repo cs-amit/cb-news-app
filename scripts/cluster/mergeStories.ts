@@ -102,6 +102,15 @@ export async function mergeStories(
     .in("story_id", loserStoryIds);
   if (articlesError) throw new Error(`Failed to reassign articles: ${articlesError.message}`);
 
+  // discovered_articles.url is globally unique (not per-story), so a loser's
+  // and winner's rows can never collide the way the dedupe-tracked tables
+  // above can -- a direct reassignment is enough, same as fact_checks/articles.
+  const { error: discoveredError } = await supabase
+    .from("discovered_articles")
+    .update({ story_id: winnerStoryId })
+    .in("story_id", loserStoryIds);
+  if (discoveredError) throw new Error(`Failed to reassign discovered_articles: ${discoveredError.message}`);
+
   const { error: deleteError } = await supabase.from("stories").delete().in("id", loserStoryIds);
   if (deleteError) throw new Error(`Failed to delete merged stories: ${deleteError.message}`);
 }

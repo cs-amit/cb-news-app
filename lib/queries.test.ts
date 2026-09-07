@@ -1,5 +1,5 @@
 import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
-import { fetchConflictFlags, fetchFactChecks } from "./queries";
+import { fetchConflictFlags, fetchFactChecks, fetchDiscoveredArticles } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
 import { applyPollDrift, fetchOwnPollResponses, fetchOwnCompassStats } from "./queries";
@@ -339,6 +339,38 @@ describe("fetchFactChecks", () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchFactChecks(client, "story-1")).rejects.toThrow(
       "Failed to fetch fact-checks: boom"
+    );
+  });
+});
+
+describe("fetchDiscoveredArticles", () => {
+  function makeMockSupabase(result: { data: any; error: any }) {
+    const order = jest.fn().mockResolvedValue(result);
+    const eq = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    return { client: { from } as any, from };
+  }
+
+  it("returns the story's discovered articles", async () => {
+    const rows = [
+      { id: "d1", outlet_name: "Some Outlet", url: "https://example.com/a", title: "T", published_at: null },
+    ];
+    const { client, from } = makeMockSupabase({ data: rows, error: null });
+    const result = await fetchDiscoveredArticles(client, "story-1");
+    expect(from).toHaveBeenCalledWith("discovered_articles");
+    expect(result).toEqual(rows);
+  });
+
+  it("returns an empty array when data is null", async () => {
+    const { client } = makeMockSupabase({ data: null, error: null });
+    expect(await fetchDiscoveredArticles(client, "story-1")).toEqual([]);
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    await expect(fetchDiscoveredArticles(client, "story-1")).rejects.toThrow(
+      "Failed to fetch discovered articles: boom"
     );
   });
 });
