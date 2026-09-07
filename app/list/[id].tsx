@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator } from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { fetchListById, fetchListItems, ListRow, ListItemRow } from "../../lib/queries";
@@ -37,9 +39,12 @@ export default function ListDetailScreen() {
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
   if (error || !list)
     return (
-      <Text style={{ padding: 16, fontFamily: fonts.ui, color: colors.textPrimary }}>
-        {error ?? "List not found."}
-      </Text>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 8 }}>
+        <Ionicons name="alert-circle-outline" size={32} color={colors.textSecondary} />
+        <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
+          {error ?? "List not found."}
+        </Text>
+      </View>
     );
 
   return (
@@ -49,7 +54,10 @@ export default function ListDetailScreen() {
         <Text style={{ marginTop: 4, color: colors.textSecondary, fontFamily: fonts.ui }}>{list.description}</Text>
       ) : null}
       {!list.is_public ? (
-        <Text style={{ fontSize: 11, color: colors.red, marginTop: 4, fontFamily: fonts.ui }}>Private</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+          <Ionicons name="lock-closed-outline" size={12} color={colors.red} />
+          <Text style={{ fontSize: 11, color: colors.red, fontFamily: fonts.ui }}>Private</Text>
+        </View>
       ) : null}
       <FlatList
         style={{ marginTop: 20 }}
@@ -58,18 +66,54 @@ export default function ListDetailScreen() {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/story/${item.story_id}`)}
-            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}
+            style={{
+              flexDirection: "row",
+              gap: 12,
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderColor: colors.border,
+            }}
           >
-            <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
-              {item.story?.canonical_headline ?? "Untitled story"}
-            </Text>
-            {item.story?.summary ? (
-              <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>{item.story.summary}</Text>
-            ) : null}
+            {item.story?.image_url ? (
+              <Image
+                source={{ uri: item.story.image_url }}
+                style={{ width: 56, height: 56, borderRadius: 8, backgroundColor: colors.surfaceSubtle }}
+                contentFit="cover"
+              />
+            ) : (
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 8,
+                  backgroundColor: colors.surfaceSubtle,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="newspaper-outline" size={20} color={colors.textSecondary} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+                {item.story?.canonical_headline ?? "Untitled story"}
+              </Text>
+              {item.story?.summary ? (
+                <Text
+                  style={{ marginTop: 2, color: colors.textSecondary, fontFamily: fonts.ui }}
+                  numberOfLines={2}
+                >
+                  {item.story.summary}
+                </Text>
+              ) : null}
+            </View>
           </Pressable>
         )}
         ListEmptyComponent={
-          <Text style={{ color: colors.textSecondary, marginTop: 8, fontFamily: fonts.ui }}>No stories yet.</Text>
+          <View style={{ alignItems: "center", gap: 8, marginTop: 32 }}>
+            <Ionicons name="bookmark-outline" size={28} color={colors.textSecondary} />
+            <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>No stories yet.</Text>
+          </View>
         }
       />
     </View>

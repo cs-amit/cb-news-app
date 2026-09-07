@@ -7,6 +7,7 @@ import { QUIZ_QUESTIONS, scoreQuizAnswers } from "../lib/compass";
 import { setCompassPosition, fetchOwnPollResponses } from "../lib/queries";
 import { computeCompassDistribution, CompassDistribution } from "../lib/compassStats";
 import { CompassGauge, CompassDistributionBar } from "../components/CompassGauge";
+import { Button } from "../components/Button";
 import { colors, fonts } from "../lib/theme";
 
 const LIKERT_OPTIONS: { label: string; value: number }[] = [
@@ -56,9 +57,7 @@ export default function QuizScreen() {
         <Text style={{ marginTop: 16, fontFamily: fonts.ui, color: colors.textSecondary }}>
           This is a badge, not a filter — it never changes which stories or outlets you see.
         </Text>
-        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.primary }}>Done</Text>
-        </Pressable>
+        <Button label="Done" onPress={() => router.back()} style={{ marginTop: 16 }} />
       </View>
     );
   }
@@ -99,20 +98,13 @@ export default function QuizScreen() {
           </View>
         </View>
       ))}
-      <Pressable
+      <Button
+        label="See my position"
         onPress={handleSubmit}
-        disabled={!allAnswered || status === "submitting"}
+        disabled={!allAnswered}
+        loading={status === "submitting"}
         style={{ marginTop: 24, marginBottom: 40 }}
-      >
-        <Text
-          style={{
-            fontFamily: fonts.uiSemiBold,
-            color: allAnswered ? colors.primary : colors.textSecondary,
-          }}
-        >
-          {status === "submitting" ? "Saving..." : "See my position"}
-        </Text>
-      </Pressable>
+      />
     </ScrollView>
   );
 }

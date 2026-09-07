@@ -5,6 +5,7 @@ import { computeStreak, computeSidesSeenTotal, ViewRow } from "./streak";
 import { PollResponseValue } from "./polls";
 import { computeDrift, PollResponseForDrift } from "./compassDrift";
 import { computeCompassDistribution, CompassDistribution } from "./compassStats";
+import { isValidUuid } from "./uuid";
 
 export async function fetchRecentStories(supabase: SupabaseClient, topic?: string): Promise<Story[]> {
   let query = supabase
@@ -33,6 +34,11 @@ export async function fetchStoryWithArticles(
   supabase: SupabaseClient,
   storyId: string
 ): Promise<{ story: Story; articles: ArticleWithOutlet[] }> {
+  // A malformed id (bad link, typo) hits Postgres's uuid parser before any
+  // row-matching logic runs, throwing a raw "invalid input syntax for type
+  // uuid" error rather than the friendly "not found" this should read as.
+  if (!isValidUuid(storyId)) throw new Error("no story with that id");
+
   const { data: story, error: storyError } = await supabase
     .from("stories")
     .select("id, canonical_headline, summary, first_seen_at, image_url, article_count")
@@ -406,6 +412,10 @@ export async function fetchPublicProfile(
 }
 
 export async function fetchListById(supabase: SupabaseClient, listId: string): Promise<ListRow | null> {
+  // Same malformed-id case as fetchStoryWithArticles above -- a bad id reads
+  // as "not found" here, not a raw Postgres uuid-parse error.
+  if (!isValidUuid(listId)) return null;
+
   const { data, error } = await supabase.from("lists").select("*").eq("id", listId).maybeSingle();
   if (error) throw new Error(`Failed to fetch list: ${error.message}`);
   return data;
@@ -604,7 +614,9 @@ export async function fetchPublicLists(supabase: SupabaseClient, ownerId: string
 export async function fetchListItems(supabase: SupabaseClient, listId: string): Promise<ListItemRow[]> {
   const { data, error } = await supabase
     .from("list_items")
-    .select("id, list_id, story_id, position, added_at, story:stories(id, canonical_headline, summary, first_seen_at)")
+    .select(
+      "id, list_id, story_id, position, added_at, story:stories(id, canonical_headline, summary, first_seen_at, image_url, article_count)"
+    )
     .eq("list_id", listId)
     .order("position");
   if (error) throw new Error(`Failed to fetch list items: ${error.message}`);

@@ -35,6 +35,7 @@ import {
   scheduleDailyDigest,
 } from "../lib/notifications";
 import { buildDailyDigestCopy } from "../lib/notificationCopy";
+import { Button } from "../components/Button";
 import { colors, fonts } from "../lib/theme";
 import { TOPICS_ALL, TOPIC_LABELS } from "../lib/topics";
 
@@ -339,13 +340,9 @@ export default function FeedScreen() {
                 Nice, a {profile?.streak_count}-day streak! Save your progress so it's not lost if
                 you reinstall.
               </Text>
-              <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
-                <Pressable onPress={() => router.push("/upgrade")}>
-                  <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Add email</Text>
-                </Pressable>
-                <Pressable onPress={handleDismissUpgradePrompt}>
-                  <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>Maybe later</Text>
-                </Pressable>
+              <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
+                <Button label="Add email" onPress={() => router.push("/upgrade")} />
+                <Button label="Maybe later" onPress={handleDismissUpgradePrompt} variant="secondary" />
               </View>
             </View>
           ) : null}
@@ -373,12 +370,8 @@ export default function FeedScreen() {
               {recoveryError ? (
                 <Text style={{ marginTop: 4, color: colors.red, fontFamily: fonts.ui }}>{recoveryError}</Text>
               ) : null}
-              <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
-                <Pressable onPress={handleClaimRecoveryHandle} disabled={recoverySubmitting}>
-                  <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>
-                    {recoverySubmitting ? "Saving..." : "Save handle"}
-                  </Text>
-                </Pressable>
+              <View style={{ flexDirection: "row", marginTop: 12 }}>
+                <Button label="Save handle" onPress={handleClaimRecoveryHandle} loading={recoverySubmitting} />
               </View>
             </View>
           ) : null}
@@ -387,13 +380,9 @@ export default function FeedScreen() {
               <Text style={{ color: colors.textPrimary, fontFamily: fonts.ui }}>
                 Get a daily digest of today's top story and who's silent on it.
               </Text>
-              <View style={{ flexDirection: "row", marginTop: 8, gap: 16 }}>
-                <Pressable onPress={handleEnableNotifications}>
-                  <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Turn on</Text>
-                </Pressable>
-                <Pressable onPress={handleDismissNotificationPrompt}>
-                  <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui }}>No thanks</Text>
-                </Pressable>
+              <View style={{ flexDirection: "row", marginTop: 12, gap: 12 }}>
+                <Button label="Turn on" onPress={handleEnableNotifications} />
+                <Button label="No thanks" onPress={handleDismissNotificationPrompt} variant="secondary" />
               </View>
             </View>
           ) : null}

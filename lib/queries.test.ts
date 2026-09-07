@@ -1,4 +1,4 @@
-import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats } from "./queries";
+import { fetchRecentStories, fetchSilentOutlets, fetchMethodologyStats, fetchStoryWithArticles } from "./queries";
 import { fetchConflictFlags, fetchFactChecks, fetchDiscoveredArticles } from "./queries";
 import { recordArticleView, fetchProfile, recomputeAndSaveStreak } from "./queries";
 import { submitPollResponse, fetchPollTally, fetchPollTallies } from "./queries";
@@ -340,6 +340,17 @@ describe("fetchFactChecks", () => {
     await expect(fetchFactChecks(client, "story-1")).rejects.toThrow(
       "Failed to fetch fact-checks: boom"
     );
+  });
+});
+
+describe("fetchStoryWithArticles", () => {
+  it("throws a friendly error without querying when the id isn't a valid uuid (bad link/typo)", async () => {
+    const from = jest.fn();
+    const client = { from } as any;
+    await expect(fetchStoryWithArticles(client, "nonexistent")).rejects.toThrow(
+      "no story with that id"
+    );
+    expect(from).not.toHaveBeenCalled();
   });
 });
 
@@ -691,9 +702,11 @@ describe("fetchListById", () => {
     return { client: { from } as any, from, select, eq };
   }
 
+  const VALID_LIST_ID = "11111111-1111-1111-1111-111111111111";
+
   it("returns the list when found", async () => {
     const list = {
-      id: "list-1",
+      id: VALID_LIST_ID,
       owner_id: "user-1",
       name: "Reposts",
       description: null,
@@ -702,20 +715,26 @@ describe("fetchListById", () => {
       created_at: "2026-08-01T00:00:00Z",
     };
     const { client, from, eq } = makeSelectMock({ data: list, error: null });
-    const result = await fetchListById(client, "list-1");
+    const result = await fetchListById(client, VALID_LIST_ID);
     expect(from).toHaveBeenCalledWith("lists");
-    expect(eq).toHaveBeenCalledWith("id", "list-1");
+    expect(eq).toHaveBeenCalledWith("id", VALID_LIST_ID);
     expect(result).toEqual(list);
   });
 
   it("returns null when no list has that id (not found, or private and not visible via RLS)", async () => {
     const { client } = makeSelectMock({ data: null, error: null });
+    expect(await fetchListById(client, VALID_LIST_ID)).toBeNull();
+  });
+
+  it("returns null without querying when the id isn't a valid uuid (bad link/typo)", async () => {
+    const { client, from } = makeSelectMock({ data: null, error: null });
     expect(await fetchListById(client, "nonexistent")).toBeNull();
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("throws when Supabase returns an error", async () => {
     const { client } = makeSelectMock({ data: null, error: { message: "boom" } });
-    await expect(fetchListById(client, "list-1")).rejects.toThrow("Failed to fetch list: boom");
+    await expect(fetchListById(client, VALID_LIST_ID)).rejects.toThrow("Failed to fetch list: boom");
   });
 });
 

@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { fetchMethodologyStats, MethodologyStats } from "../lib/queries";
 import { colors, fonts } from "../lib/theme";
+
+function SectionHeading({ icon, title }: { icon: keyof typeof Ionicons.glyphMap; title: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 20 }}>
+      <Ionicons name={icon} size={17} color={colors.primary} />
+      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>{title}</Text>
+    </View>
+  );
+}
 
 export default function MethodologyScreen() {
   const [stats, setStats] = useState<MethodologyStats | null>(null);
@@ -21,18 +31,14 @@ export default function MethodologyScreen() {
         Methodology
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        Ownership
-      </Text>
+      <SectionHeading icon="business-outline" title="Ownership" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         Ownership data is curated from public sources (Wikipedia and press reporting) and every claim
         carries a citation, shown on each outlet's badge. Wording is kept
         neutral ("owned by") — we never use loaded terms like "controlled by" or "mouthpiece."
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        Conflict-of-interest flags
-      </Text>
+      <SectionHeading icon="warning-outline" title="Conflict-of-interest flags" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         A story is flagged for a covering outlet when the story's text mentions that outlet's owner (or a
         known alias, e.g. a parent company or controlling individual). This is a deterministic text match
@@ -40,9 +46,7 @@ export default function MethodologyScreen() {
         text are shown as evidence on each flag.
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        Press freedom
-      </Text>
+      <SectionHeading icon="shield-outline" title="Press freedom" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         Every outlet starts from a shared baseline of 32/100, derived from RSF's World Press Freedom Index
         score for India (31.96/100, rank 157 of 180, 2026 — rsf.org/en/country/india). A small number of
@@ -53,9 +57,7 @@ export default function MethodologyScreen() {
         require editorial judgment this solo build has no way to validate.
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        Govt-lean &amp; sensationalism scores
-      </Text>
+      <SectionHeading icon="stats-chart-outline" title="Govt-lean & sensationalism scores" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         Both scores come from sampling up to 20 of an outlet's most recent headlines and sending them to
         Gemini (gemini-flash-latest) in a single batched request covering every eligible outlet at once,
@@ -74,9 +76,7 @@ export default function MethodologyScreen() {
           : ""}
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        Silence signal
-      </Text>
+      <SectionHeading icon="eye-off-outline" title="Silence signal" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         A story only lists outlets as "not yet covered by" once it's at least 18 hours old — this guards
         against false positives from normal RSS polling delay, not every outlet failing to cover a story
@@ -84,9 +84,7 @@ export default function MethodologyScreen() {
         silent) if it has published at least one article in the trailing 7 days.
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        YouTube-lite inclusion criteria
-      </Text>
+      <SectionHeading icon="logo-youtube" title="YouTube-lite inclusion criteria" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         Channels were selected to span the full range of editorial relationships to India's central
         government — from independent, non-corporate creators whose journalists have publicly described
@@ -100,9 +98,7 @@ export default function MethodologyScreen() {
         endorsement or condemnation of any channel.
       </Text>
 
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary, marginTop: 20 }}>
-        Political compass
-      </Text>
+      <SectionHeading icon="compass-outline" title="Political compass" />
       <Text style={{ marginTop: 4, fontFamily: fonts.ui, color: colors.textPrimary }}>
         Your compass position (from the quiz on your profile) never changes which stories or
         outlets you're shown. It's a badge you can choose to share, not a filter — this app

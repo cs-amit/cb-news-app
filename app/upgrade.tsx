@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, Text, TextInput } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { isValidHandle, savePendingHandle } from "../lib/handle";
 import { colors, fonts } from "../lib/theme";
+import { Button } from "../components/Button";
 
 export default function UpgradeScreen() {
   const router = useRouter();
@@ -45,11 +47,12 @@ export default function UpgradeScreen() {
 
   if (status === "sent") {
     return (
-      <View style={{ padding: 16, backgroundColor: colors.background, flex: 1 }}>
+      <View style={{ padding: 16, backgroundColor: colors.background, flex: 1, alignItems: "center", gap: 12, paddingTop: 64 }}>
+        <Ionicons name="mail-outline" size={40} color={colors.primary} />
         <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
           Check your email
         </Text>
-        <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
+        <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary, textAlign: "center" }}>
           Tap the confirmation link we sent to {email.trim()}, then reopen Sourced. Your streak,
           reading history, and new handle carry over exactly as they are.
         </Text>
@@ -59,58 +62,53 @@ export default function UpgradeScreen() {
 
   return (
     <View style={{ padding: 16, backgroundColor: colors.background, flex: 1 }}>
-      <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
-        Save your progress
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />
+        <Text style={{ fontSize: 16, fontFamily: fonts.headline, color: colors.textPrimary }}>
+          Save your progress
+        </Text>
+      </View>
       <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.textSecondary }}>
         Add an email so your streak and reading history aren't lost if you reinstall, and pick a
         handle so you can share lists and your profile publicly.
       </Text>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="you@example.com"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={{
-          marginTop: 16,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 4,
-          padding: 12,
-          fontFamily: fonts.ui,
-          color: colors.textPrimary,
-        }}
-      />
-      <TextInput
-        value={handle}
-        onChangeText={setHandle}
-        placeholder="handle (lowercase, 3-20 chars)"
-        autoCapitalize="none"
-        style={{
-          marginTop: 12,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 4,
-          padding: 12,
-          fontFamily: fonts.ui,
-          color: colors.textPrimary,
-        }}
-      />
+      <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 4 }}>
+        <Ionicons name="mail-outline" size={16} color={colors.textSecondary} style={{ marginLeft: 12 }} />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={{ flex: 1, padding: 12, fontFamily: fonts.ui, color: colors.textPrimary }}
+        />
+      </View>
+      <View style={{ marginTop: 12, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 4 }}>
+        <Ionicons name="at-outline" size={16} color={colors.textSecondary} style={{ marginLeft: 12 }} />
+        <TextInput
+          value={handle}
+          onChangeText={setHandle}
+          placeholder="handle (lowercase, 3-20 chars)"
+          autoCapitalize="none"
+          style={{ flex: 1, padding: 12, fontFamily: fonts.ui, color: colors.textPrimary }}
+        />
+      </View>
       {status === "error" ? (
-        <Text style={{ marginTop: 8, fontFamily: fonts.ui, color: colors.red }}>
-          Couldn't save that: {errorMessage}
-        </Text>
-      ) : null}
-      <View style={{ flexDirection: "row", marginTop: 16, gap: 16 }}>
-        <Pressable onPress={handleSubmit} disabled={status === "submitting"}>
-          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.primary }}>
-            {status === "submitting" ? "Sending..." : "Send confirmation link"}
+        <View style={{ flexDirection: "row", gap: 4, marginTop: 8, alignItems: "flex-start" }}>
+          <Ionicons name="warning" size={13} color={colors.red} style={{ marginTop: 1 }} />
+          <Text style={{ flex: 1, fontFamily: fonts.ui, color: colors.red }}>
+            Couldn't save that: {errorMessage}
           </Text>
-        </Pressable>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary }}>Maybe later</Text>
-        </Pressable>
+        </View>
+      ) : null}
+      <View style={{ flexDirection: "row", marginTop: 16, gap: 12 }}>
+        <Button
+          label="Send confirmation link"
+          onPress={handleSubmit}
+          loading={status === "submitting"}
+          style={{ flex: 1 }}
+        />
+        <Button label="Maybe later" onPress={() => router.back()} variant="secondary" />
       </View>
     </View>
   );
