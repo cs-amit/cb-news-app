@@ -26,11 +26,17 @@ const ANCHOR_WINDOW_HOURS = 72;
 // all, and Supabase's platform default is 1000.
 const ANCHOR_PAGE_SIZE = 500;
 
-// Hard safety ceiling across ALL pages combined. Not expected to be hit in
-// normal operation — it exists so a runaway anchor window (a clustering bug
-// that stops assigning story_id, or a large outlet-count spike) degrades to a
-// loud warning instead of an unbounded fetch loop.
-const ANCHOR_SAFETY_CEILING = 5000;
+// Hard safety ceiling across ALL pages combined. It exists so a runaway
+// anchor window (a clustering bug that stops assigning story_id, or a large
+// outlet-count spike) degrades to a loud warning instead of an unbounded
+// fetch loop -- it is NOT meant to bound normal steady-state volume, which
+// should sit comfortably under it. Recalibrated 2026-09-08: real trailing-72h
+// volume settled at ~2,600 articles/day (7,600/72h) after the initial
+// ingestion backlog, versus this constant's original 5,000 -- meaning every
+// run was silently hitting the ceiling and skipping ~2,000+ real anchors from
+// merge consideration. 15,000 gives headroom for the ~3,900/day peak already
+// observed (11,700/72h) plus real growth room, not just today's number.
+const ANCHOR_SAFETY_CEILING = 15000;
 
 // Batch size for founder-resolution .in() lookups. These ids come from the
 // anchor set, which can run into the thousands near ANCHOR_SAFETY_CEILING;

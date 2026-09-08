@@ -570,6 +570,45 @@ describe("clusterUnclusteredArticles", () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("safety ceiling"));
     warnSpy.mockRestore();
   });
+
+  it("does not warn for a realistic trailing-72h anchor volume (regression: ceiling was recalibrated after real volume exceeded the old 5,000)", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const ANCHOR_PAGE_SIZE = 500;
+    // 16 full pages (8,000 rows) -- above the OLD 5,000 ceiling, below the
+    // current 15,000 one. Real trailing-72h volume observed 2026-09-08 was
+    // 7,603 anchors.
+    const REALISTIC_ANCHOR_PAGES = 16;
+    const fullPage = (pageIndex: number) =>
+      Array.from({ length: ANCHOR_PAGE_SIZE }, (_, i) => ({
+        id: `a-${pageIndex}-${i}`,
+        story_id: "story-existing",
+        embedding: asPgVector(DIFFERENT_EMBEDDING),
+      }));
+
+    const mock = makeMockSupabase((q) => {
+      if (q.table === "stories") {
+        if (has(q.calls, "insert")) return { data: { id: "story-new" }, error: null };
+        return { data: [], error: null };
+      }
+      if (has(q.calls, "update")) return { data: null, error: null };
+      if (has(q.calls, "is", "story_id", null)) {
+        return { data: [{ id: "new-1", title: "New coverage", snippet: "s" }], error: null };
+      }
+      if (has(q.calls, "not", "story_id", "is", null)) {
+        const rangeCall = q.calls.find((c) => c.method === "range")!;
+        const [offset] = rangeCall.args;
+        const pageIndex = offset / ANCHOR_PAGE_SIZE;
+        return { data: pageIndex < REALISTIC_ANCHOR_PAGES ? fullPage(pageIndex) : [], error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    const embedFn = jest.fn().mockResolvedValue(DIFFERENT_EMBEDDING);
+    await clusterUnclusteredArticles(mock.client, embedFn);
+
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("safety ceiling"));
+    warnSpy.mockRestore();
+  });
 });
 
 describe("parseEmbedding", () => {
