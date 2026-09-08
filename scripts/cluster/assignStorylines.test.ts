@@ -295,4 +295,77 @@ describe("assignStorylines", () => {
     });
     expect(result).toEqual({ storiesAssigned: 1, storylinesCreated: 0 });
   });
+
+  it("warns but does not throw when the open-storyline set hits the safety ceiling", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const bigPage = () =>
+      Array.from({ length: 500 }, (_, i) => ({
+        id: `open-${i}`,
+        storyline_id: `storyline-decoy-${i}`,
+        pooled_embedding: asPgVector(REP_LOW_COSINE_EMBEDDING),
+        entity_keys: [],
+        created_at: new Date().toISOString(),
+      }));
+
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "is", "storyline_id", null)) {
+        return { data: [CANDIDATE], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "not", "storyline_id", "is", null)) {
+        return { data: bigPage(), error: null }; // every page is full -> loops until ceiling
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        return { data: null, error: null };
+      }
+      if (q.table === "storylines" && has(q.calls, "insert")) {
+        return { data: { id: "storyline-new" }, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    await assignStorylines(client);
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("safety ceiling"));
+    warnSpy.mockRestore();
+  });
+
+  it("does not warn for a realistic open-storyline volume (regression: ceiling was recalibrated after real volume exceeded the old 5,000)", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const OPEN_STORYLINE_PAGE_SIZE = 500;
+    // 12 full pages (6,000 rows) -- above the OLD 5,000 ceiling, below the
+    // current 15,000 one. Real volume observed 2026-09-08 was 5,515.
+    const REALISTIC_PAGES = 12;
+    const fullPage = (pageIndex: number) =>
+      Array.from({ length: OPEN_STORYLINE_PAGE_SIZE }, (_, i) => ({
+        id: `open-${pageIndex}-${i}`,
+        storyline_id: `storyline-decoy-${pageIndex}-${i}`,
+        pooled_embedding: asPgVector(REP_LOW_COSINE_EMBEDDING),
+        entity_keys: [],
+        created_at: new Date().toISOString(),
+      }));
+
+    const { client } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "is", "storyline_id", null)) {
+        return { data: [CANDIDATE], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "not", "storyline_id", "is", null)) {
+        const rangeCall = q.calls.find((c) => c.method === "range")!;
+        const [offset] = rangeCall.args;
+        const pageIndex = offset / OPEN_STORYLINE_PAGE_SIZE;
+        return { data: pageIndex < REALISTIC_PAGES ? fullPage(pageIndex) : [], error: null };
+      }
+      if (q.table === "stories" && has(q.calls, "update")) {
+        return { data: null, error: null };
+      }
+      if (q.table === "storylines" && has(q.calls, "insert")) {
+        return { data: { id: "storyline-new" }, error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+
+    await assignStorylines(client);
+
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("safety ceiling"));
+    warnSpy.mockRestore();
+  });
 });

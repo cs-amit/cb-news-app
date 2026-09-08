@@ -21,8 +21,13 @@ const STORYLINE_WINDOW_HOURS = 240;
 // a single unpaginated fetch relies on Supabase's undocumented default row
 // cap (1000), and that exact assumption silently truncated results in
 // production once the table outgrew it. Paginate instead.
+//
+// Recalibrated 2026-09-08, same day and for the same reason as
+// clusterStories.ts's ANCHOR_SAFETY_CEILING: real volume (5,515 open-window
+// member stories) had grown past the original 5,000, so this was silently
+// tripping on every run. 15,000 matches the anchor ceiling's headroom logic.
 const OPEN_STORYLINE_PAGE_SIZE = 500;
-const OPEN_STORYLINE_SAFETY_CEILING = 5000;
+const OPEN_STORYLINE_SAFETY_CEILING = 15000;
 
 // Looser than the clusterer's mid threshold (0.78): storyline members are
 // related-but-distinct events (an announcement vs. a follow-up detail), not
