@@ -145,10 +145,19 @@ export default function StoryScreen() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
+  if (loading) return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.background }} />;
   if (error || !story)
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 8 }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 32,
+          gap: 8,
+          backgroundColor: colors.background,
+        }}
+      >
         <Ionicons name="alert-circle-outline" size={32} color={colors.textSecondary} />
         <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
           Couldn't load story: {error}

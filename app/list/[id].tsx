@@ -36,10 +36,19 @@ export default function ListDetailScreen() {
     })();
   }, [id]);
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
+  if (loading) return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.background }} />;
   if (error || !list)
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 8 }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 32,
+          gap: 8,
+          backgroundColor: colors.background,
+        }}
+      >
         <Ionicons name="alert-circle-outline" size={32} color={colors.textSecondary} />
         <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
           {error ?? "List not found."}
@@ -69,9 +78,15 @@ export default function ListDetailScreen() {
             style={{
               flexDirection: "row",
               gap: 12,
-              paddingVertical: 12,
-              borderBottomWidth: 1,
-              borderColor: colors.border,
+              padding: 12,
+              marginBottom: 10,
+              borderRadius: 12,
+              backgroundColor: colors.background,
+              shadowColor: "#000",
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
             }}
           >
             {item.story?.image_url ? (

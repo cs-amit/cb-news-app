@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { useFonts, SourceSerif4_700Bold } from "@expo-google-fonts/source-serif-4";
 import { Sora_400Regular, Sora_600SemiBold } from "@expo-google-fonts/sora";
 import { ActivityIndicator, View } from "react-native";
+import { colors, fonts } from "../lib/theme";
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -12,15 +13,23 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
         <ActivityIndicator />
       </View>
     );
   }
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: "Today's Stories" }} />
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.background },
+        headerShadowVisible: false,
+        headerTitleStyle: { fontFamily: fonts.headline, fontSize: 18, color: colors.textPrimary },
+        headerTitleAlign: "left",
+        headerTintColor: colors.primary,
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="story/[id]" options={{ title: "Story" }} />
       <Stack.Screen name="methodology" options={{ title: "Methodology" }} />
       <Stack.Screen name="upgrade" options={{ title: "Save your progress" }} />

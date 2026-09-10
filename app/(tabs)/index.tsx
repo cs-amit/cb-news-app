@@ -13,8 +13,8 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "../lib/supabase";
-import { getUserId } from "../lib/auth";
+import { supabase } from "../../lib/supabase";
+import { getUserId } from "../../lib/auth";
 import {
   fetchRecentStories,
   fetchProfile,
@@ -26,18 +26,18 @@ import {
   completePendingHandleClaim,
   recoverPendingHandleClaim,
   Profile,
-} from "../lib/queries";
-import { Story } from "../lib/types";
-import { isValidHandle, readPendingHandle, clearPendingHandle } from "../lib/handle";
+} from "../../lib/queries";
+import { Story } from "../../lib/types";
+import { isValidHandle, readPendingHandle, clearPendingHandle } from "../../lib/handle";
 import {
   requestNotificationPermission,
   ensureAndroidChannel,
   scheduleDailyDigest,
-} from "../lib/notifications";
-import { buildDailyDigestCopy } from "../lib/notificationCopy";
-import { Button } from "../components/Button";
-import { colors, fonts } from "../lib/theme";
-import { TOPICS_ALL, TOPIC_LABELS } from "../lib/topics";
+} from "../../lib/notifications";
+import { buildDailyDigestCopy } from "../../lib/notificationCopy";
+import { Button } from "../../components/Button";
+import { colors, fonts } from "../../lib/theme";
+import { TOPICS_ALL, TOPIC_LABELS } from "../../lib/topics";
 
 const NOTIFICATION_PROMPT_DISMISSED_KEY = "notificationPromptDismissed";
 const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
@@ -87,7 +87,6 @@ export default function FeedScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  const [ownHandle, setOwnHandle] = useState<string | null>(null);
   const [repostsListId, setRepostsListId] = useState<string | null>(null);
   // I3 recovery: shown when the user's email is confirmed but no handle got
   // claimed automatically (no locally-stored pending handle to auto-apply —
@@ -100,10 +99,9 @@ export default function FeedScreen() {
   const router = useRouter();
 
   // Shared by the initial profile load and both handle-claim success paths
-  // below so ownHandle/repostsListId reflect a just-claimed handle in the
-  // same session, without duplicating the fetch-and-set logic three times.
-  async function loadOwnHandleAndLists(id: string, handle: string) {
-    setOwnHandle(handle);
+  // below so repostsListId reflects a just-claimed handle in the same
+  // session, without duplicating the fetch-and-set logic three times.
+  async function loadRepostsList(id: string) {
     try {
       const lists = await fetchUserLists(supabase, id);
       const reposts = lists.find((l) => l.is_default);
@@ -147,7 +145,7 @@ export default function FeedScreen() {
         setProfile(p);
 
         if (p?.handle) {
-          await loadOwnHandleAndLists(id, p.handle);
+          await loadRepostsList(id);
         } else if (p) {
           // No handle yet — this is either a plain anonymous user who never
           // started the upgrade flow (nothing to do), or someone mid-upgrade
@@ -166,7 +164,7 @@ export default function FeedScreen() {
                   await clearPendingHandle();
                   const refreshed = await fetchProfile(supabase, id);
                   setProfile(refreshed);
-                  if (refreshed?.handle) await loadOwnHandleAndLists(id, refreshed.handle);
+                  if (refreshed?.handle) await loadRepostsList(id);
                 } catch (err) {
                   console.error("Failed to complete pending handle claim:", err);
                   // Re-fetch (via recoverPendingHandleClaim) before deciding
@@ -190,7 +188,7 @@ export default function FeedScreen() {
                     // handle input should be offered.
                     await clearPendingHandle();
                     setProfile(refetched);
-                    await loadOwnHandleAndLists(id, refetched.handle);
+                    await loadRepostsList(id);
                   } else {
                     // Genuinely still unclaimed (e.g. someone else claimed
                     // the same handle in the meantime). Don't clear the
@@ -302,7 +300,7 @@ export default function FeedScreen() {
       setShowHandleRecovery(false);
       const refreshed = await fetchProfile(supabase, userId);
       setProfile(refreshed);
-      if (refreshed?.handle) await loadOwnHandleAndLists(userId, refreshed.handle);
+      if (refreshed?.handle) await loadRepostsList(userId);
     } catch (err) {
       setRecoveryError(err instanceof Error ? err.message : "Couldn't save that handle.");
     } finally {
@@ -319,7 +317,8 @@ export default function FeedScreen() {
     }
   }
 
-  if (loading && stories.length === 0) return <ActivityIndicator style={{ flex: 1 }} />;
+  if (loading && stories.length === 0)
+    return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.background }} />;
   if (error) return <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>Couldn't load stories: {error}</Text>;
 
   const visibleStories =
@@ -501,13 +500,6 @@ export default function FeedScreen() {
             }
             onPress={() => router.push("/quiz")}
           />
-          {ownHandle ? (
-            <NavLink
-              icon="person-circle-outline"
-              label="My profile"
-              onPress={() => router.push(`/profile/${ownHandle}`)}
-            />
-          ) : null}
         </View>
       }
       renderItem={({ item }) => (
@@ -516,23 +508,30 @@ export default function FeedScreen() {
           style={{
             flexDirection: "row",
             gap: 12,
-            padding: 16,
-            borderBottomWidth: 1,
-            borderColor: colors.border,
+            padding: 12,
+            marginHorizontal: 16,
+            marginVertical: 6,
+            borderRadius: 12,
+            backgroundColor: colors.background,
+            shadowColor: "#000",
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
           }}
         >
           {item.image_url ? (
             <Image
               source={{ uri: item.image_url }}
-              style={{ width: 72, height: 72, borderRadius: 8, backgroundColor: colors.surfaceSubtle }}
+              style={{ width: 84, height: 84, borderRadius: 10, backgroundColor: colors.surfaceSubtle }}
               contentFit="cover"
             />
           ) : (
             <View
               style={{
-                width: 72,
-                height: 72,
-                borderRadius: 8,
+                width: 84,
+                height: 84,
+                borderRadius: 10,
                 backgroundColor: colors.surfaceSubtle,
                 alignItems: "center",
                 justifyContent: "center",
