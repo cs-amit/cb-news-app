@@ -23,6 +23,27 @@ import {
 import { shouldShowPoll } from "../../lib/polls";
 import { OutletSummary } from "../../lib/silence";
 import { outletFaviconUrl } from "../../lib/outletFavicon";
+
+const styles = {
+  sectionCard: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  scoreChip: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceSubtle,
+  },
+  scoreChipText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui },
+};
 import { pickComparisonArticles, pickFramingSpectrum } from "../../lib/comparison";
 import { buildShareText } from "../../lib/shareCopy";
 import { Story, ArticleWithOutlet, ConflictFlag, DiscoveredArticle } from "../../lib/types";
@@ -204,7 +225,7 @@ export default function StoryScreen() {
         <Text style={{ color: colors.primary, fontFamily: fonts.uiSemiBold }}>Share this story</Text>
       </Pressable>
       {framingSpectrum.length === 2 ? (
-        <View style={{ marginTop: 24 }}>
+        <View style={styles.sectionCard}>
           <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>Compare framing</Text>
           <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2, fontFamily: fonts.ui }}>
             How the two most differently-scored outlets covering this story headlined it:
@@ -223,7 +244,8 @@ export default function StoryScreen() {
           ))}
         </View>
       ) : null}
-      <Text style={{ marginTop: 24, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+      <View style={styles.sectionCard}>
+      <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
         Sources ({articles.length})
       </Text>
       {articles.map((article) => {
@@ -346,16 +368,32 @@ export default function StoryScreen() {
               </View>
             ) : null}
             {hasScores ? (
-              <Text style={{ marginTop: 2, fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui }}>
-                {outlet?.govt_lean_score != null
-                  ? `Govt-lean: ${outlet.govt_lean_score}/100${govtLeanProvenance}  `
-                  : ""}
-                {outlet?.sensationalism_score != null
-                  ? `Sensationalism: ${outlet.sensationalism_score}/100  `
-                  : ""}
-                {outlet?.freedom_score != null
-                  ? `${freedomLabel}: ${outlet.freedom_score}/100`
-                  : ""}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                {outlet?.govt_lean_score != null ? (
+                  <View style={styles.scoreChip}>
+                    <Ionicons name="business-outline" size={11} color={colors.textSecondary} />
+                    <Text style={styles.scoreChipText}>Govt-lean {outlet.govt_lean_score}/100</Text>
+                  </View>
+                ) : null}
+                {outlet?.sensationalism_score != null ? (
+                  <View style={styles.scoreChip}>
+                    <Ionicons name="flame-outline" size={11} color={colors.textSecondary} />
+                    <Text style={styles.scoreChipText}>Sensationalism {outlet.sensationalism_score}/100</Text>
+                  </View>
+                ) : null}
+                {outlet?.freedom_score != null ? (
+                  <View style={styles.scoreChip}>
+                    <Ionicons name="shield-checkmark-outline" size={11} color={colors.textSecondary} />
+                    <Text style={styles.scoreChipText}>
+                      {freedomLabel.replace(" (India baseline)", "")} {outlet.freedom_score}/100
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+            {govtLeanProvenance ? (
+              <Text style={{ marginTop: 2, fontSize: 10, color: colors.textSecondary, fontFamily: fonts.ui }}>
+                Govt-lean{govtLeanProvenance}
               </Text>
             ) : null}
             {outlet && shouldShowPoll(outlet) ? (
@@ -394,8 +432,9 @@ export default function StoryScreen() {
           </Pressable>
         );
       })}
+      </View>
       {silentOutlets.length > 0 ? (
-        <View style={{ marginTop: 24 }}>
+        <View style={styles.sectionCard}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Ionicons name="eye-off-outline" size={15} color={colors.textSecondary} />
             <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
@@ -422,7 +461,7 @@ export default function StoryScreen() {
         </View>
       ) : null}
       {factChecks.length > 0 ? (
-        <View style={{ marginTop: 24 }}>
+        <View style={styles.sectionCard}>
           <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>Fact-checked</Text>
           {factChecks.map((factCheck, index) => (
             <Pressable
@@ -469,7 +508,7 @@ export default function StoryScreen() {
         </View>
       ) : null}
       {discoveredArticles.length > 0 ? (
-        <View style={{ marginTop: 24 }}>
+        <View style={styles.sectionCard}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Ionicons name="search-outline" size={15} color={colors.textSecondary} />
             <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
