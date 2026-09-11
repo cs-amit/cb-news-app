@@ -1,6 +1,21 @@
 # Sourced — Consumer Behaviour Project Write-Up (Working Draft)
 
-**Status, 2026-09-11:** Deadline is tomorrow midnight. This draft is written
+**⚠️ Two things I can't fill in — check your original assignment sheet:**
+1. The pasted brief had the "Project Objective" paragraph with its actual
+   content missing (blanks where the objective/behaviour-change statement
+   should be — likely lost in copy-paste from a slide). I haven't
+   fabricated a guess at the exact wording; the opening section below
+   states it in my own words, but if your assignment sheet has a specific
+   required phrasing, use that instead.
+2. The brief says "Your project should answer four fundamental questions"
+   but the actual four questions were also blank in what got pasted here.
+   If you have the original doc/slide, send me those four questions and
+   I'll make sure every section explicitly answers all four, rather than
+   guessing what they were.
+
+---
+
+**Status, 2026-09-12:** Deadline is tonight at midnight. This draft is written
 now, in parallel with real interviews, so nothing is starting from zero once
 transcripts land. Every section below is marked:
 
@@ -11,6 +26,20 @@ transcripts land. Every section below is marked:
   **not yet checked against real interview transcripts** — revise this first
   once transcripts arrive, don't treat it as finished
 - ⚪ **Pending** — genuinely can't be written until interview data exists
+
+---
+
+## Project Objective 🟡 (my own wording — replace with the sheet's exact phrasing if it differs)
+
+Conceptualise and develop a prototype of an app designed to reduce
+uncritical, single-source news consumption. The objective is to make
+cross-source comparison and source-transparency the *default*, low-effort
+path rather than an optional extra readers rarely take. The app serves as
+a vehicle for demonstrating our ability to apply Consumer Behaviour
+concepts — motivation, effort/friction, framing, heuristics, the Hook
+Model, reinforcement, identity and social influence — to understand why
+readers don't compare sources despite wanting to, and to deliberately
+design experiences (not just features) that shift that behaviour.
 
 ---
 
