@@ -28,17 +28,31 @@ const MAX_STORIES_PER_RUN = BATCH_SIZE * MAX_REQUESTS_PER_RUN;
 // the cron's ~30min budget.
 const REQUEST_SPACING_MS = 7000;
 const ARTICLE_FETCH_BATCH_SIZE = 200;
+// A story only becomes eligible for headlining once it's had this long to
+// accumulate cross-outlet coverage. Before this floor existed, the feed's
+// visible multi-source rate was ~0% (investigated 2026-09-11): this query
+// pulled the newest headline-less stories first, every 2h cron tick, so the
+// backlog of older stories was permanently outrun by fresher ones and never
+// got a turn. 76% of stories that ever become multi-source get their 2nd
+// article within 24h of the first, so waiting this long before headlining
+// trades some freshness for a much better chance the headline reflects real
+// cross-source coverage, while draining oldest-first (below) actually clears
+// the backlog instead of endlessly re-flooding it with brand-new stories.
+const HEADLINE_AGE_FLOOR_HOURS = 24;
 
 export async function fillMissingHeadlines(
   supabase: SupabaseClient,
   generateFn: (stories: StoryForBatch[]) => Promise<Map<string, StorySummary>>,
   sleepFn: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 ): Promise<number> {
+  const ageFloorCutoff = new Date(Date.now() - HEADLINE_AGE_FLOOR_HOURS * 60 * 60 * 1000).toISOString();
+
   const { data: stories, error } = await supabase
     .from("stories")
     .select("id")
     .is("canonical_headline", null)
-    .order("first_seen_at", { ascending: false })
+    .lte("first_seen_at", ageFloorCutoff)
+    .order("first_seen_at", { ascending: true })
     .limit(MAX_STORIES_PER_RUN);
   if (error) throw new Error(`Failed to fetch stories needing headlines: ${error.message}`);
   if (!stories || stories.length === 0) return 0;

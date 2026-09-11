@@ -8,7 +8,7 @@ interface Query {
   table: string;
   calls: Call[];
 }
-const CHAIN_METHODS = ["select", "update", "is", "eq", "in", "order", "limit"];
+const CHAIN_METHODS = ["select", "update", "is", "eq", "in", "lte", "order", "limit"];
 
 function has(calls: Call[], method: string): boolean {
   return calls.some((c) => c.method === method);
@@ -257,6 +257,29 @@ describe("fillMissingHeadlines", () => {
 
     expect(updated).toBe(0);
     expect(generateFn).not.toHaveBeenCalled();
+  });
+
+  it("only selects stories at least the age floor old, oldest-first", async () => {
+    const before = Date.now();
+    const { client, queries } = makeMockSupabase((q) => {
+      if (q.table === "stories" && has(q.calls, "select")) {
+        return { data: [], error: null };
+      }
+      throw new Error(`unexpected query: ${JSON.stringify(q)}`);
+    });
+    const generateFn = jest.fn();
+
+    await fillMissingHeadlines(client, generateFn);
+
+    const selectQuery = queries.find((q) => q.table === "stories" && has(q.calls, "select"))!;
+    const orderCall = selectQuery.calls.find((c) => c.method === "order")!;
+    expect(orderCall.args).toEqual(["first_seen_at", { ascending: true }]);
+
+    const lteCall = selectQuery.calls.find((c) => c.method === "lte")!;
+    expect(lteCall.args[0]).toBe("first_seen_at");
+    const cutoffMs = new Date(lteCall.args[1]).getTime();
+    const expectedCutoffMs = before - 24 * 60 * 60 * 1000; // HEADLINE_AGE_FLOOR_HOURS
+    expect(Math.abs(cutoffMs - expectedCutoffMs)).toBeLessThan(5000);
   });
 
   it("returns 0 without calling the batch fn when no stories need headlines", async () => {
