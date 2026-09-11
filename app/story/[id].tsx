@@ -192,7 +192,7 @@ export default function StoryScreen() {
           const silentCount = silentOutlets.length;
           Share.share({
             message: buildShareText(
-              { headline: story.canonical_headline ?? "This story" },
+              { headline: story.canonical_headline ?? "This story", id: story.id },
               articles.length,
               silentCount
             ),

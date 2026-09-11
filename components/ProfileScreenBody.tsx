@@ -9,9 +9,11 @@ import {
   fetchPublicLists,
   fetchUserLists,
   fetchOwnCompassStats,
+  fetchProfile,
   PublicProfile,
   ListRow,
   OwnCompassStats,
+  Profile,
 } from "../lib/queries";
 import { CompassGauge, CompassDistributionBar } from "./CompassGauge";
 import { ShareableCompassBadge } from "./ShareableCompassBadge";
@@ -29,6 +31,7 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
   const [lists, setLists] = useState<ListRow[]>([]);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [ownCompassStats, setOwnCompassStats] = useState<OwnCompassStats | null>(null);
+  const [ownProfile, setOwnProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +62,7 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
         // other people's profiles rather than silently showing nothing.
         if (own) {
           setOwnCompassStats(await fetchOwnCompassStats(supabase, found.id));
+          setOwnProfile(await fetchProfile(supabase, found.id));
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load profile.");
@@ -93,6 +97,14 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
       <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>
         @{profile.handle}
       </Text>
+      {isOwnProfile && ownProfile && ownProfile.streak_count > 0 ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 }}>
+          <Ionicons name="flame" size={16} color={colors.red} />
+          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
+            {ownProfile.streak_count}-day streak · {ownProfile.sides_seen_total} sides seen
+          </Text>
+        </View>
+      ) : null}
       {profile.compass_position !== null ? (
         <View style={{ marginTop: 12 }}>
           <CompassGauge position={profile.compass_position} />

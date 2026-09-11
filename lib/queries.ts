@@ -7,7 +7,25 @@ import { computeDrift, PollResponseForDrift } from "./compassDrift";
 import { computeCompassDistribution, CompassDistribution } from "./compassStats";
 import { isValidUuid } from "./uuid";
 
-export async function fetchRecentStories(supabase: SupabaseClient, topic?: string): Promise<Story[]> {
+export type FeedView = "compare" | "single";
+
+// Compare used to starve: the query fetched only the newest 50 stories
+// overall, then the feed screen filtered client-side for Compare/Single --
+// so Compare only ever showed whatever tiny fraction of that small,
+// mostly-brand-new slice happened to already have 2+ sources. Filtering
+// server-side per view, with Compare drawing from a much bigger pool, lets
+// it surface genuinely multi-source stories even when they're not the
+// newest thing in the feed (staleness is an accepted trade-off here, not a
+// bug -- volume of real comparisons matters more than freshness for this
+// tab specifically).
+const COMPARE_FEED_LIMIT = 300;
+const SINGLE_FEED_LIMIT = 50;
+
+export async function fetchRecentStories(
+  supabase: SupabaseClient,
+  topic?: string,
+  view: FeedView = "compare"
+): Promise<Story[]> {
   let query = supabase
     .from("stories")
     // article_count is a denormalized counter (see migration 0016), kept in
@@ -25,7 +43,9 @@ export async function fetchRecentStories(supabase: SupabaseClient, topic?: strin
   if (topic) {
     query = query.eq("topic", topic);
   }
-  const { data, error } = await query.order("first_seen_at", { ascending: false }).limit(50);
+  query = view === "compare" ? query.gte("article_count", 2) : query.lt("article_count", 2);
+  const limit = view === "compare" ? COMPARE_FEED_LIMIT : SINGLE_FEED_LIMIT;
+  const { data, error } = await query.order("first_seen_at", { ascending: false }).limit(limit);
   if (error) throw new Error(`Failed to fetch stories: ${error.message}`);
   return data ?? [];
 }

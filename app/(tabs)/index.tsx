@@ -88,6 +88,7 @@ export default function FeedScreen() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [repostsListId, setRepostsListId] = useState<string | null>(null);
+  const [repostStatus, setRepostStatus] = useState<Record<string, "pending" | "done" | "error">>({});
   // I3 recovery: shown when the user's email is confirmed but no handle got
   // claimed automatically (no locally-stored pending handle to auto-apply —
   // e.g. app data was cleared, or confirmation happened via a different
@@ -115,7 +116,7 @@ export default function FeedScreen() {
     let cancelled = false;
     setError(null);
     setLoading(true);
-    fetchRecentStories(supabase, selectedTopic ?? undefined)
+    fetchRecentStories(supabase, selectedTopic ?? undefined, feedView)
       .then((s) => {
         if (!cancelled) setStories(s);
       })
@@ -128,7 +129,7 @@ export default function FeedScreen() {
     return () => {
       cancelled = true;
     };
-  }, [selectedTopic]);
+  }, [selectedTopic, feedView]);
 
   useEffect(() => {
     getUserId(supabase)
@@ -308,12 +309,18 @@ export default function FeedScreen() {
     }
   }
 
+  // Previously gave zero visible feedback either way -- a successful repost
+  // looked identical to a silently-swallowed failure, which is almost
+  // certainly why this looked "broken" even when it was actually working.
   async function handleRepost(storyId: string) {
     if (!repostsListId) return;
+    setRepostStatus((prev) => ({ ...prev, [storyId]: "pending" }));
     try {
       await addStoryToList(supabase, repostsListId, storyId);
+      setRepostStatus((prev) => ({ ...prev, [storyId]: "done" }));
     } catch (err) {
       console.error("Failed to repost story:", err);
+      setRepostStatus((prev) => ({ ...prev, [storyId]: "error" }));
     }
   }
 
@@ -321,15 +328,12 @@ export default function FeedScreen() {
     return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.background }} />;
   if (error) return <Text style={{ padding: 16, color: colors.textPrimary, fontFamily: fonts.ui }}>Couldn't load stories: {error}</Text>;
 
-  const visibleStories =
-    feedView === "compare"
-      ? stories.filter((s) => s.article_count >= COMPARE_MIN_SOURCES)
-      : stories.filter((s) => s.article_count < COMPARE_MIN_SOURCES);
-
+  // Server-side filtered per feedView now (fetchRecentStories), so `stories`
+  // already only contains the right set -- no client-side re-filter needed.
   return (
     <FlatList
       style={{ backgroundColor: colors.background }}
-      data={visibleStories}
+      data={stories}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View>
@@ -401,59 +405,34 @@ export default function FeedScreen() {
               </Text>
             </View>
           ) : null}
-          <View style={{ flexDirection: "row", gap: 8, padding: 16, paddingBottom: 0 }}>
-            {(
-              [
-                { key: "compare" as const, label: "Compare", icon: "swap-horizontal-outline" as const },
-                { key: "single" as const, label: "Single source", icon: "document-text-outline" as const },
-              ]
-            ).map((tab) => {
-              const active = feedView === tab.key;
-              return (
-                <Pressable
-                  key={tab.key}
-                  onPress={() => setFeedView(tab.key)}
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    backgroundColor: active ? colors.primary : colors.surfaceSubtle,
-                  }}
-                >
-                  <Ionicons
-                    name={tab.icon}
-                    size={15}
-                    color={active ? colors.background : colors.textSecondary}
-                  />
-                  <Text
-                    style={{
-                      fontFamily: active ? fonts.uiSemiBold : fonts.ui,
-                      color: active ? colors.background : colors.textSecondary,
-                    }}
-                  >
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {feedView === "compare" ? (
-            <Text
-              style={{
-                paddingHorizontal: 16,
-                paddingTop: 8,
-                fontSize: 12,
-                color: colors.textSecondary,
-                fontFamily: fonts.ui,
-              }}
-            >
-              Stories covered by 2 or more outlets, so you can compare how they're reported.
+          {/* Compare is the default, primary experience -- Single source is
+              deliberately a small, secondary link rather than an equal-weight
+              tab, so it doesn't compete with Compare for attention. */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: 16,
+              paddingBottom: 0,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: fonts.ui, flex: 1 }}>
+              {feedView === "compare"
+                ? "Stories covered by 2 or more outlets, so you can compare how they're reported."
+                : "Stories only one outlet has covered so far."}
             </Text>
-          ) : null}
+            <Pressable
+              onPress={() => setFeedView(feedView === "compare" ? "single" : "compare")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 8 }}
+            >
+              <Text style={{ fontSize: 12, fontFamily: fonts.ui, color: colors.textSecondary }}>
+                {feedView === "compare" ? "Single source" : "Back to Compare"}
+              </Text>
+              <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} />
+            </Pressable>
+          </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16, paddingTop: 12 }}>
             <Pressable
               onPress={() => setSelectedTopic(null)}
@@ -568,11 +547,34 @@ export default function FeedScreen() {
                   e.stopPropagation();
                   handleRepost(item.id);
                 }}
+                disabled={repostStatus[item.id] === "pending" || repostStatus[item.id] === "done"}
                 style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
               >
-                <Ionicons name="bookmark-outline" size={13} color={colors.primary} />
-                <Text style={{ fontSize: 12, color: colors.primary, fontFamily: fonts.ui }}>
-                  Repost to my profile
+                <Ionicons
+                  name={
+                    repostStatus[item.id] === "done"
+                      ? "bookmark"
+                      : repostStatus[item.id] === "error"
+                        ? "alert-circle-outline"
+                        : "bookmark-outline"
+                  }
+                  size={13}
+                  color={repostStatus[item.id] === "error" ? colors.red : colors.primary}
+                />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: repostStatus[item.id] === "error" ? colors.red : colors.primary,
+                    fontFamily: fonts.ui,
+                  }}
+                >
+                  {repostStatus[item.id] === "done"
+                    ? "Reposted"
+                    : repostStatus[item.id] === "pending"
+                      ? "Reposting…"
+                      : repostStatus[item.id] === "error"
+                        ? "Couldn't repost — tap to retry"
+                        : "Repost to my profile"}
                 </Text>
               </Pressable>
             ) : null}
@@ -581,17 +583,15 @@ export default function FeedScreen() {
       )}
       ListEmptyComponent={
         <View style={{ padding: 32, alignItems: "center", gap: 8 }}>
-          <Ionicons
-            name={stories.length > 0 ? "swap-horizontal-outline" : "newspaper-outline"}
-            size={32}
-            color={colors.textSecondary}
-          />
+          <Ionicons name="newspaper-outline" size={32} color={colors.textSecondary} />
           <Text style={{ color: colors.textSecondary, fontFamily: fonts.ui, textAlign: "center" }}>
             {(() => {
               const topicSuffix = selectedTopic
                 ? ` tagged "${TOPIC_LABELS[selectedTopic as keyof typeof TOPIC_LABELS] ?? selectedTopic}"`
                 : "";
-              if (stories.length === 0) return `No stories${topicSuffix} yet.`;
+              // `stories` is now server-filtered to just this tab (fetchRecentStories'
+              // view param), so we no longer know the other tab's count here without
+              // a second query -- always give the tab-specific message.
               return feedView === "compare"
                 ? `No stories${topicSuffix} with 2+ sources yet. Check Single source instead.`
                 : `No single-source stories${topicSuffix} right now — everything's in Compare.`;

@@ -35,6 +35,34 @@ function makeMockSupabase(result: { data: any; error: any }) {
 }
 
 describe("fetchRecentStories", () => {
+  // The Compare tab used to starve: the shared query pulled only the
+  // newest 50 stories overall, then the feed screen filtered client-side --
+  // so Compare showed whatever tiny fraction of that small, mostly-fresh
+  // slice happened to already be multi-source. Filtering server-side per
+  // view, with Compare given a much bigger backing pool, means Compare
+  // surfaces real multi-source stories even when they're not brand new
+  // (staleness is an accepted trade-off here, not a bug).
+  interface Call {
+    method: string;
+    args: any[];
+  }
+  function makeFlexMockSupabase(result: { data: any; error: any }) {
+    const calls: Call[] = [];
+    const builder: any = {};
+    for (const method of ["select", "not", "eq", "gte", "lt", "order", "limit"]) {
+      builder[method] = (...args: any[]) => {
+        calls.push({ method, args });
+        return builder;
+      };
+    }
+    builder.then = (onFulfilled: any) => Promise.resolve(result).then(onFulfilled);
+    const from = jest.fn().mockReturnValue(builder);
+    return { client: { from } as any, from, calls };
+  }
+  function callArgs(calls: Call[], method: string) {
+    return calls.find((c) => c.method === method)?.args;
+  }
+
   it("returns the story list on success", async () => {
     const stories = [
       {
@@ -45,40 +73,55 @@ describe("fetchRecentStories", () => {
         article_count: 3,
       },
     ];
-    const { client, from } = makeMockSupabase({ data: stories, error: null });
+    const { client, from } = makeFlexMockSupabase({ data: stories, error: null });
     const result = await fetchRecentStories(client);
     expect(from).toHaveBeenCalledWith("stories");
     expect(result).toEqual(stories);
   });
 
   it("excludes stories that have no headline yet", async () => {
-    const { client, not, order, limit } = makeMockSupabase({ data: [], error: null });
+    const { client, calls } = makeFlexMockSupabase({ data: [], error: null });
     await fetchRecentStories(client);
-    expect(not).toHaveBeenCalledWith("canonical_headline", "is", null);
-    expect(order).toHaveBeenCalledWith("first_seen_at", { ascending: false });
-    expect(limit).toHaveBeenCalledWith(50);
+    expect(callArgs(calls, "not")).toEqual(["canonical_headline", "is", null]);
+    expect(callArgs(calls, "order")).toEqual(["first_seen_at", { ascending: false }]);
+  });
+
+  it("defaults to the compare view: article_count >= 2, a much larger limit", async () => {
+    const { client, calls } = makeFlexMockSupabase({ data: [], error: null });
+    await fetchRecentStories(client);
+    expect(callArgs(calls, "gte")).toEqual(["article_count", 2]);
+    expect(callArgs(calls, "lt")).toBeUndefined();
+    expect(callArgs(calls, "limit")?.[0]).toBeGreaterThanOrEqual(200);
+  });
+
+  it("the single-source view filters article_count < 2 with the old, smaller limit", async () => {
+    const { client, calls } = makeFlexMockSupabase({ data: [], error: null });
+    await fetchRecentStories(client, undefined, "single");
+    expect(callArgs(calls, "lt")).toEqual(["article_count", 2]);
+    expect(callArgs(calls, "gte")).toBeUndefined();
+    expect(callArgs(calls, "limit")).toEqual([50]);
   });
 
   it("returns an empty array when data is null", async () => {
-    const { client } = makeMockSupabase({ data: null, error: null });
+    const { client } = makeFlexMockSupabase({ data: null, error: null });
     expect(await fetchRecentStories(client)).toEqual([]);
   });
 
   it("throws when Supabase returns an error", async () => {
-    const { client } = makeMockSupabase({ data: null, error: { message: "boom" } });
+    const { client } = makeFlexMockSupabase({ data: null, error: { message: "boom" } });
     await expect(fetchRecentStories(client)).rejects.toThrow("Failed to fetch stories: boom");
   });
 
   it("filters by topic when a topic is provided", async () => {
-    const { client, eq } = makeMockSupabase({ data: [], error: null });
+    const { client, calls } = makeFlexMockSupabase({ data: [], error: null });
     await fetchRecentStories(client, "politics");
-    expect(eq).toHaveBeenCalledWith("topic", "politics");
+    expect(callArgs(calls, "eq")).toEqual(["topic", "politics"]);
   });
 
   it("does not filter by topic when none is provided", async () => {
-    const { client, eq } = makeMockSupabase({ data: [], error: null });
+    const { client, calls } = makeFlexMockSupabase({ data: [], error: null });
     await fetchRecentStories(client);
-    expect(eq).not.toHaveBeenCalled();
+    expect(callArgs(calls, "eq")).toBeUndefined();
   });
 });
 
