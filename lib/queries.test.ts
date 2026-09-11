@@ -10,6 +10,7 @@ import {
   setCompassPosition,
   fetchPublicProfile,
   fetchListById,
+  fetchDiscoverableProfiles,
 } from "./queries";
 import {
   createDefaultRepostsList,
@@ -1164,6 +1165,108 @@ describe("fetchOwnCompassStats", () => {
     const { client } = makeMockSupabase({ data: null, error: { message: "boom" } }, []);
     await expect(fetchOwnCompassStats(client, "user-1")).rejects.toThrow(
       "Failed to fetch compass stats: boom"
+    );
+  });
+});
+
+describe("fetchDiscoverableProfiles", () => {
+  function makeMockSupabase(
+    profiles: any[],
+    lists: any[],
+    items: any[],
+    errors: { profiles?: any; lists?: any; items?: any } = {}
+  ) {
+    const from = jest.fn((table: string) => {
+      if (table === "discoverable_profiles") {
+        const order = jest.fn().mockResolvedValue({ data: profiles, error: errors.profiles ?? null });
+        const select = jest.fn().mockReturnValue({ order });
+        return { select };
+      }
+      if (table === "lists") {
+        const eq = jest.fn().mockResolvedValue({ data: lists, error: errors.lists ?? null });
+        const inFn = jest.fn().mockReturnValue({ eq });
+        const select = jest.fn().mockReturnValue({ in: inFn });
+        return { select };
+      }
+      // list_items
+      const order = jest.fn().mockResolvedValue({ data: items, error: errors.items ?? null });
+      const inFn = jest.fn().mockReturnValue({ order });
+      const select = jest.fn().mockReturnValue({ in: inFn });
+      return { select };
+    });
+    return { client: { from } as any, from };
+  }
+
+  it("pairs each discoverable profile with its public list's preview stories", async () => {
+    const { client } = makeMockSupabase(
+      [{ id: "p1", handle: "arjun", compass_position: -40 }],
+      [{ id: "list-1", owner_id: "p1", name: "Arjun's picks" }],
+      [
+        { list_id: "list-1", position: 0, story: { canonical_headline: "H1", image_url: "img1" } },
+        { list_id: "list-1", position: 1, story: { canonical_headline: "H2", image_url: null } },
+      ]
+    );
+
+    const result = await fetchDiscoverableProfiles(client);
+
+    expect(result).toEqual([
+      {
+        handle: "arjun",
+        compassPosition: -40,
+        listName: "Arjun's picks",
+        previewStories: [
+          { headline: "H1", imageUrl: "img1" },
+          { headline: "H2", imageUrl: null },
+        ],
+      },
+    ]);
+  });
+
+  it("caps preview stories per profile at 3", async () => {
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      list_id: "list-1",
+      position: i,
+      story: { canonical_headline: `H${i}`, image_url: null },
+    }));
+    const { client } = makeMockSupabase(
+      [{ id: "p1", handle: "arjun", compass_position: -40 }],
+      [{ id: "list-1", owner_id: "p1", name: "Arjun's picks" }],
+      items
+    );
+
+    const result = await fetchDiscoverableProfiles(client);
+
+    expect(result[0].previewStories).toHaveLength(3);
+    expect(result[0].previewStories.map((s: { headline: string | null }) => s.headline)).toEqual([
+      "H0",
+      "H1",
+      "H2",
+    ]);
+  });
+
+  it("returns a profile with no list as having no preview stories, not an error", async () => {
+    const { client } = makeMockSupabase([{ id: "p1", handle: "arjun", compass_position: -40 }], [], []);
+
+    const result = await fetchDiscoverableProfiles(client);
+
+    expect(result).toEqual([
+      { handle: "arjun", compassPosition: -40, listName: null, previewStories: [] },
+    ]);
+  });
+
+  it("returns an empty array without querying lists/items when there are no discoverable profiles", async () => {
+    const { client, from } = makeMockSupabase([], [], []);
+
+    const result = await fetchDiscoverableProfiles(client);
+
+    expect(result).toEqual([]);
+    expect(from).not.toHaveBeenCalledWith("lists");
+  });
+
+  it("throws when Supabase returns an error fetching discoverable profiles", async () => {
+    const { client } = makeMockSupabase([], [], [], { profiles: { message: "boom" } });
+    await expect(fetchDiscoverableProfiles(client)).rejects.toThrow(
+      "Failed to fetch discoverable profiles: boom"
     );
   });
 });

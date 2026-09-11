@@ -411,6 +411,74 @@ export async function fetchPublicProfile(
   return data;
 }
 
+const DISCOVER_PREVIEW_STORY_COUNT = 3;
+
+export interface DiscoverableProfile {
+  handle: string;
+  compassPosition: number | null;
+  listName: string | null;
+  previewStories: { headline: string | null; imageUrl: string | null }[];
+}
+
+/**
+ * Profiles to surface on the Discover tab: reads the `discoverable_profiles`
+ * view (server-side filtered to demo, compass-public rows — see migration
+ * 0018), then batches each profile's single public list and its first few
+ * items for a preview. Small N (a handful of seeded demo profiles), so this
+ * is a few separate queries rather than an embedded join, matching how the
+ * rest of this file handles low-volume batched lookups.
+ */
+export async function fetchDiscoverableProfiles(supabase: SupabaseClient): Promise<DiscoverableProfile[]> {
+  const { data: profiles, error } = await supabase
+    .from("discoverable_profiles")
+    .select("id, handle, compass_position")
+    .order("handle");
+  if (error) throw new Error(`Failed to fetch discoverable profiles: ${error.message}`);
+  if (!profiles || profiles.length === 0) return [];
+
+  const ownerIds = profiles.map((p: any) => p.id);
+  const { data: lists, error: listsError } = await supabase
+    .from("lists")
+    .select("id, owner_id, name")
+    .in("owner_id", ownerIds)
+    .eq("is_public", true);
+  if (listsError) throw new Error(`Failed to fetch discoverable profiles' lists: ${listsError.message}`);
+
+  const listIds = (lists ?? []).map((l: any) => l.id);
+  let items: any[] = [];
+  if (listIds.length > 0) {
+    const { data, error: itemsError } = await supabase
+      .from("list_items")
+      .select("list_id, position, story:stories(canonical_headline, image_url)")
+      .in("list_id", listIds)
+      .order("position");
+    if (itemsError) throw new Error(`Failed to fetch discoverable profiles' list items: ${itemsError.message}`);
+    items = data ?? [];
+  }
+
+  const listByOwner = new Map<string, { id: string; name: string }>();
+  for (const l of lists ?? []) listByOwner.set(l.owner_id, { id: l.id, name: l.name });
+
+  const previewsByList = new Map<string, { headline: string | null; imageUrl: string | null }[]>();
+  for (const item of items as any[]) {
+    const preview = previewsByList.get(item.list_id) ?? [];
+    if (preview.length < DISCOVER_PREVIEW_STORY_COUNT) {
+      preview.push({ headline: item.story?.canonical_headline ?? null, imageUrl: item.story?.image_url ?? null });
+    }
+    previewsByList.set(item.list_id, preview);
+  }
+
+  return (profiles as any[]).map((p) => {
+    const list = listByOwner.get(p.id);
+    return {
+      handle: p.handle,
+      compassPosition: p.compass_position,
+      listName: list?.name ?? null,
+      previewStories: list ? previewsByList.get(list.id) ?? [] : [],
+    };
+  });
+}
+
 export async function fetchListById(supabase: SupabaseClient, listId: string): Promise<ListRow | null> {
   // Same malformed-id case as fetchStoryWithArticles above -- a bad id reads
   // as "not found" here, not a raw Postgres uuid-parse error.

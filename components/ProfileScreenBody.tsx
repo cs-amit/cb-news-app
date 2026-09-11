@@ -14,6 +14,7 @@ import {
   OwnCompassStats,
 } from "../lib/queries";
 import { CompassGauge, CompassDistributionBar } from "./CompassGauge";
+import { ShareableCompassBadge } from "./ShareableCompassBadge";
 import { colors, fonts } from "../lib/theme";
 
 /**
@@ -116,6 +117,11 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
           <Ionicons name="compass-outline" size={14} color={colors.primary} />
           <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz</Text>
         </Pressable>
+      ) : null}
+      {isOwnProfile && profile.compass_position !== null ? (
+        <View style={{ marginTop: 20 }}>
+          <ShareableCompassBadge handle={profile.handle} position={profile.compass_position} />
+        </View>
       ) : null}
       <Text style={{ marginTop: 20, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
         {isOwnProfile ? "Your lists" : "Public lists"}
