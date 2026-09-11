@@ -162,6 +162,17 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
           </View>
         }
       />
+      {isOwnProfile ? (
+        <Pressable
+          onPress={() => router.push("/methodology")}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingVertical: 4 }}
+        >
+          <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
+          <Text style={{ fontSize: 12, fontFamily: fonts.ui, color: colors.textSecondary }}>
+            How are these badges calculated? Methodology
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

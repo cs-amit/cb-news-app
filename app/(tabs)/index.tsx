@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  FlatList,
-  Text,
-  Pressable,
-  View,
-  ActivityIndicator,
-  TextInput,
-  StyleProp,
-  ViewStyle,
-} from "react-native";
+import { FlatList, Text, Pressable, View, ActivityIndicator, TextInput } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -44,32 +35,6 @@ const UPGRADE_PROMPT_STREAK_MILESTONE = 3;
 const UPGRADE_PROMPT_DISMISSED_KEY = "upgradePromptDismissed";
 
 const TOPICS = TOPICS_ALL.filter((t) => t !== "other");
-
-function NavLink({
-  icon,
-  label,
-  onPress,
-  style,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  style?: StyleProp<ViewStyle>;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
-        style,
-      ]}
-    >
-      <Ionicons name={icon} size={16} color={colors.primary} />
-      <Text style={{ flex: 1, color: colors.primary, fontFamily: fonts.ui }}>{label}</Text>
-      <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-    </Pressable>
-  );
-}
 
 type FeedView = "compare" | "single";
 
@@ -405,6 +370,31 @@ export default function FeedScreen() {
               </Text>
             </View>
           ) : null}
+          {/* Moved up from the bottom of the header (was easy to scroll past
+              entirely) and given a filled banner treatment instead of a plain
+              text link, so it actually draws people in rather than being the
+              last, most-ignorable thing on the screen. */}
+          <Pressable
+            onPress={() => router.push("/quiz")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              margin: 16,
+              marginBottom: 0,
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: colors.primary,
+            }}
+          >
+            <Ionicons name="compass" size={20} color={colors.background} />
+            <Text style={{ flex: 1, fontFamily: fonts.uiSemiBold, color: colors.background }}>
+              {profile?.compass_quiz_taken_at
+                ? "See your compass position"
+                : "Where do you stand? Take the compass quiz"}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.background} />
+          </Pressable>
           {/* Compare is the default, primary experience -- Single source is
               deliberately a small, secondary link rather than an equal-weight
               tab, so it doesn't compete with Compare for attention. */}
@@ -464,21 +454,6 @@ export default function FeedScreen() {
               </Pressable>
             ))}
           </View>
-          <NavLink
-            icon="information-circle-outline"
-            label="How are these badges calculated? Methodology"
-            onPress={() => router.push("/methodology")}
-            style={{ paddingTop: 16 }}
-          />
-          <NavLink
-            icon="compass-outline"
-            label={
-              profile?.compass_quiz_taken_at
-                ? "Your compass position"
-                : "Where do you stand? Take the compass quiz"
-            }
-            onPress={() => router.push("/quiz")}
-          />
         </View>
       }
       renderItem={({ item }) => (
