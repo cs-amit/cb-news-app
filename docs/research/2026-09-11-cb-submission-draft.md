@@ -180,7 +180,7 @@ trying to convert news-reading into a deliberate research activity.
 
 | Hook Stage | Guiding question | Sourced's plan | CB principle |
 |---|---|---|---|
-| **Trigger** | What starts the behavior? | **External:** a push notification when a story a reader has viewed gets a new conflicting fact-check verdict or a "Not yet covered by" count drops (i.e. gets newly corroborated/disputed) — an event-driven trigger, not a generic engagement ping. **Internal:** the moment of hesitation/suspicion itself ("that sounds off") becomes the trigger once the app has been used enough that "check Sourced" is the learned response to that feeling. | External triggers only work early; the goal is for the internal trigger (suspicion) to take over — that's the actual habit, not the notification. |
+| **Trigger** | What starts the behavior? | **External, real and shipped:** a reader shares their compass badge (a rendered image, not a link) via WhatsApp/Instagram; the *person who receives it* — not the sharer — is the one the trigger is really for. Seeing a friend's specific, personal result is a concrete social-proof/reference-group cue (Cialdini) that a generic "download this app" ad isn't — it prompts "what would mine look like?" rather than a cold pitch. This is the acquisition path *in lieu of* the quiz being the only way in. **Also external:** a push notification when a viewed story gets a new conflicting fact-check verdict. **Internal:** the moment of hesitation/suspicion itself ("that sounds off") becomes the trigger once the app has been used enough that "check Sourced" is the learned response to that feeling. | External triggers only work early; the goal is for the internal trigger (suspicion) to take over — that's the actual habit, not the notification. The shared-badge trigger specifically leverages social proof/reference-group influence, not just reminder-based cueing. |
 | **Action** | What's the simplest next behavior? | Open the app → the story is already on the feed with its comparison state visible (Compare/Single-source badge, "Not yet covered by" line) — no search, no second app, no manual cross-referencing. The comparison itself requires zero additional steps once the app is open. | Fogg-style: minimize physical/cognitive steps between trigger and payoff. |
 | **Variable reward** | What does the reader get? | **Reward of the Hunt:** finding out whether a story is corroborated or contested is itself variable and unpredictable — some stories are clean, some reveal a real conflict, and the reader doesn't know which until they look. **Reward of the Self:** the compass/profile screen gives a private sense of "I checked my own bias this week," a small mastery/competence signal. | Variable reward keeps the check itself interesting rather than rote — a story that's *always* clean would extinguish the checking habit fast. |
 | **Investment** | What does the reader put in that makes the next use better? | Answering outlet-lean polls (feeds the compass), saving stories to lists, viewing history (which stories/outlets they've actually engaged with). Each of these makes the *next* visit more personally relevant (a more accurate compass position, a curated list) without being effortful — investment is incidental to normal use, not a separate task. | Investment should load the next trigger, not just flatter the user — a more accurate compass is itself a reason to come back and see it move. |
@@ -227,6 +227,17 @@ News's equivalent is private-only). This is the product's actual
 differentiation, not the comparison feature itself, which several
 competitors also do in some form.
 
+**Shipped, not hypothetical:** the badge is now literally shareable as an
+image (native share sheet, `components/ShareableCompassBadge.tsx`) —
+turning the identity artifact into something that leaves the app entirely
+and travels through the reader's own social graph. This is symbolic
+consumption in the most direct sense the assignment's own concept list
+names it: the badge is consumed and displayed *as a statement about the
+self*, not for its utility. A new "Discover" tab (seeded with demo
+profiles for now) also lets readers browse other people's badges and
+curated picks — reference-group comparison made literally browsable, not
+just implied.
+
 - **Identity signaling:** a reader who's confident in their "balanced" zone
   has a genuine, shareable claim about themselves, distinct from just
   reading the news.
@@ -256,6 +267,7 @@ competitors also do in some form.
 | Outlet favicons + ownership-flag icons | Readers rely on gut-level source trust, not researched trust | Retrieval cues; heuristic-based decision-making | A recognizable cue at the point of decision lets an existing attitude be retrieved cheaply, at the moment it's useful | Faster, more consistent trust judgments per outlet across sessions |
 | Fact-check verdict pills | Readers default to binary "true/false" gut calls on contested claims | Categorization; framing (color + label) | A pre-computed, colour-coded verdict substitutes for effortful deliberation without asking the reader to do the checking themselves | Readers update belief on a specific claim without independently researching it |
 | Compass gauge + weekly drift | No competitor gives readers a *public* personal-lean identity marker (private-only elsewhere) | Self-concept; identity signaling; symbolic consumption | A durable personal artifact gives readers something to say about themselves, not just a tool to use | Repeated voluntary engagement (poll answers) beyond the minimum needed for any single article |
+| Shareable badge image (native share sheet) + Discover tab | People install apps their friends show them, not apps that advertise at them | Social proof; reference-group influence (Cialdini) | Seeing a specific friend's specific result prompts "what would mine be?" — a personal cue an ad can't replicate | Install/quiz-start events attributable to a shared badge rather than the quiz being the only entry point |
 | No gamification (no streaks/points/leaderboard) | Manufactured reward risks crowding out genuine interest in accuracy | Intrinsic vs. extrinsic motivation | Removing extrinsic scoring keeps the *reason* for checking tied to wanting real information, not a score | Engagement driven by curiosity/suspicion triggers rather than habit-loop point-chasing |
 | Discovered sources ("Also found via search") kept separate from Compare | Treating unvetted sources as equal to curated ones would undermine trust in the vetted set | Categorization integrity; trust transfer | Keeping the unscored tier visually and structurally distinct protects the credibility signal the scored tier relies on | Readers extend less automatic trust to "discovered" sources than to core outlets |
 
@@ -287,6 +299,10 @@ rationale, drawn from Parts C-F above):
    supporting the trust mechanism without requiring the reader to take it
    on faith.
 8. **List detail** — the low-effort "investment" artifact from Part D.
+9. **Discover tab** — browsing other readers' badges/curated picks, the
+   reference-group/social-comparison mechanism from Part F made concrete.
+10. **Share sheet with the rendered badge image** — the real external
+    trigger from Part D's Hook Model, not a mockup of one.
 
 (Screenshots to be captured from the current build and inserted before
 submission — the app is live and running, so this is a capture task, not a
