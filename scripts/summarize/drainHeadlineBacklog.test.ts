@@ -102,6 +102,23 @@ describe("drainHeadlineBacklog", () => {
     expect(sleepFn).toHaveBeenCalledWith(7000);
   });
 
+  it("reports cumulative progress after each iteration", async () => {
+    const { client } = makeMockSupabasePaged([
+      [{ id: "story-1" }, { id: "story-2" }],
+      [{ id: "story-3" }],
+      [],
+    ]);
+    const generateFn = makeGenerateFn();
+    const onProgress = jest.fn();
+
+    await drainHeadlineBacklog(client, generateFn, jest.fn().mockResolvedValue(undefined), 7000, 200, onProgress);
+
+    expect(onProgress).toHaveBeenCalledTimes(3);
+    expect(onProgress).toHaveBeenNthCalledWith(1, { iteration: 1, justHeadlined: 2, totalHeadlined: 2 });
+    expect(onProgress).toHaveBeenNthCalledWith(2, { iteration: 2, justHeadlined: 1, totalHeadlined: 3 });
+    expect(onProgress).toHaveBeenNthCalledWith(3, { iteration: 3, justHeadlined: 0, totalHeadlined: 3 });
+  });
+
   it("stops at the safety ceiling instead of looping forever, and warns", async () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     // Every page is non-empty: without a ceiling this would never terminate.

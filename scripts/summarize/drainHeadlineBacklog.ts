@@ -16,12 +16,19 @@ import { fillMissingHeadlines } from "./fillMissingHeadlines";
 // paced by an unrelated per-run cap.
 const DEFAULT_MAX_ITERATIONS = 200;
 
+export interface DrainProgress {
+  iteration: number;
+  justHeadlined: number;
+  totalHeadlined: number;
+}
+
 export async function drainHeadlineBacklog(
   supabase: SupabaseClient,
   generateFn: (stories: StoryForBatch[]) => Promise<Map<string, StorySummary>>,
   sleepFn: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   spacingMs = 7000,
-  maxIterations = DEFAULT_MAX_ITERATIONS
+  maxIterations = DEFAULT_MAX_ITERATIONS,
+  onProgress: (progress: DrainProgress) => void = () => {}
 ): Promise<{ totalHeadlined: number; iterations: number }> {
   let totalHeadlined = 0;
   let iterations = 0;
@@ -31,6 +38,7 @@ export async function drainHeadlineBacklog(
     const count = await fillMissingHeadlines(supabase, generateFn, sleepFn);
     iterations += 1;
     totalHeadlined += count;
+    onProgress({ iteration: iterations, justHeadlined: count, totalHeadlined });
     if (count === 0) break;
   }
 

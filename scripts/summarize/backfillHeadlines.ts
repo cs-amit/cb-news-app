@@ -15,8 +15,20 @@ async function main() {
   }
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  const { totalHeadlined, iterations } = await drainHeadlineBacklog(supabase, (batch) =>
-    generateBatchHeadlines(batch, geminiKey)
+  const startedAt = Date.now();
+  const { totalHeadlined, iterations } = await drainHeadlineBacklog(
+    supabase,
+    (batch) => generateBatchHeadlines(batch, geminiKey),
+    undefined,
+    undefined,
+    undefined,
+    (progress) => {
+      const elapsedMin = ((Date.now() - startedAt) / 60000).toFixed(1);
+      console.log(
+        `[${elapsedMin}min] iteration ${progress.iteration}: +${progress.justHeadlined} ` +
+          `(total ${progress.totalHeadlined})`
+      );
+    }
   );
   console.log(`Backfill complete: headlined ${totalHeadlined} stories over ${iterations} batch-run(s).`);
 }
