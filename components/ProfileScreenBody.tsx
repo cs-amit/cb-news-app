@@ -105,22 +105,37 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
           </Text>
         </View>
       ) : null}
-      {profile.compass_position !== null ? (
-        <View style={{ marginTop: 12 }}>
-          <CompassGauge position={profile.compass_position} />
-          {isOwnProfile && ownCompassStats ? (
-            <>
-              <CompassDistributionBar distribution={ownCompassStats.distribution} />
-              {ownCompassStats.weekDelta > 0 ? (
-                <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui, marginTop: 4 }}>
-                  Moved {ownCompassStats.weekDelta.toFixed(1)} point
-                  {ownCompassStats.weekDelta === 1 ? "" : "s"} this week
-                </Text>
-              ) : null}
-            </>
-          ) : null}
-        </View>
-      ) : null}
+      {/* Own profile uses the real, ungated position (fetchProfile reads the
+          owner-only profiles table directly) -- profile.compass_position
+          comes from the public_profiles view, which nulls it out whenever
+          compass_public is off. Without this, an owner who has taken the
+          quiz but never toggled compass_public couldn't see their OWN
+          result on their OWN profile, which is the bug this fixes. */}
+      {(() => {
+        const displayPosition = isOwnProfile ? (ownProfile?.compass_position ?? null) : profile.compass_position;
+        if (displayPosition === null) return null;
+        return (
+          <View style={{ marginTop: 12 }}>
+            <CompassGauge position={displayPosition} />
+            {isOwnProfile && ownCompassStats ? (
+              <>
+                <CompassDistributionBar distribution={ownCompassStats.distribution} />
+                {ownCompassStats.weekDelta > 0 ? (
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: fonts.ui, marginTop: 4 }}>
+                    Moved {ownCompassStats.weekDelta.toFixed(1)} point
+                    {ownCompassStats.weekDelta === 1 ? "" : "s"} this week
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+            {isOwnProfile ? (
+              <View style={{ marginTop: 20 }}>
+                <ShareableCompassBadge handle={profile.handle} position={displayPosition} />
+              </View>
+            ) : null}
+          </View>
+        );
+      })()}
       {isOwnProfile ? (
         <Pressable
           onPress={() => router.push("/quiz")}
@@ -129,11 +144,6 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
           <Ionicons name="compass-outline" size={14} color={colors.primary} />
           <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz</Text>
         </Pressable>
-      ) : null}
-      {isOwnProfile && profile.compass_position !== null ? (
-        <View style={{ marginTop: 20 }}>
-          <ShareableCompassBadge handle={profile.handle} position={profile.compass_position} />
-        </View>
       ) : null}
       <Text style={{ marginTop: 20, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
         {isOwnProfile ? "Your lists" : "Public lists"}

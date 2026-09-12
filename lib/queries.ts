@@ -241,13 +241,14 @@ export interface Profile {
   notification_hour: number;
   handle: string | null;
   compass_quiz_taken_at: string | null;
+  compass_position: number | null;
 }
 
 export async function fetchProfile(supabase: SupabaseClient, userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour, handle, compass_quiz_taken_at"
+      "id, streak_count, longest_streak, sides_seen_total, notification_opt_in, notification_hour, handle, compass_quiz_taken_at, compass_position"
     )
     .eq("id", userId)
     .maybeSingle();

@@ -4,10 +4,11 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/auth";
 import { QUIZ_QUESTIONS, scoreQuizAnswers } from "../lib/compass";
-import { setCompassPosition, fetchOwnPollResponses } from "../lib/queries";
+import { setCompassPosition, fetchOwnPollResponses, fetchProfile } from "../lib/queries";
 import { computeCompassDistribution, CompassDistribution } from "../lib/compassStats";
 import { Ionicons } from "@expo/vector-icons";
 import { CompassGauge, CompassDistributionBar } from "../components/CompassGauge";
+import { ShareableCompassBadge } from "../components/ShareableCompassBadge";
 import { Button } from "../components/Button";
 import { colors, fonts, pollColors } from "../lib/theme";
 
@@ -31,6 +32,7 @@ export default function QuizScreen() {
   const [status, setStatus] = useState<"idle" | "submitting" | "done">("idle");
   const [resultPosition, setResultPosition] = useState<number | null>(null);
   const [distribution, setDistribution] = useState<CompassDistribution | null>(null);
+  const [handle, setHandle] = useState<string | null>(null);
 
   const allAnswered = QUIZ_QUESTIONS.every((q) => typeof answers[q.id] === "number");
 
@@ -44,6 +46,10 @@ export default function QuizScreen() {
       // alongside the fresh position rather than pretending it's day one.
       const responses = await fetchOwnPollResponses(supabase, userId);
       setDistribution(computeCompassDistribution(responses));
+      // Sharing needs a handle to name the badge -- anonymous users (no
+      // handle yet) still get their result, just not the share option.
+      const profile = await fetchProfile(supabase, userId);
+      setHandle(profile?.handle ?? null);
     } catch (err) {
       console.error("Failed to save compass position:", err);
     }
@@ -96,6 +102,11 @@ export default function QuizScreen() {
         >
           This is a badge, not a filter — it never changes which stories or outlets you see.
         </Text>
+        {handle ? (
+          <View style={{ marginTop: 20 }}>
+            <ShareableCompassBadge handle={handle} position={resultPosition} />
+          </View>
+        ) : null}
         <Button label="Done" onPress={() => router.back()} style={{ marginTop: 20 }} />
       </View>
     );
