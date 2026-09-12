@@ -81,14 +81,33 @@ not fight — the design goal isn't "get everyone comparing everything," it's
 and be honest about the two-thirds where it isn't" (the "Not yet covered
 by..." pattern instead of silence).
 
-**Mechanisms likely at play** (to validate/refine against interviews):
-motivation-behavior gap (want balanced news, but comparing isn't the
-default action); effort discounting (a second lookup costs real steps —
-open another app, search, reconcile two versions — against an immediate,
-already-satisfied "I read the news" feeling); habit (the news app/source
-that's already on the home screen wins on autopilot, not consideration);
-attention (a single-source story doesn't visually signal that anything is
-missing — silence reads as completeness, not as a gap).
+**Revised after Subject 1's interview (2026-09-12) — a real, useful
+complication, not just confirmation:** the original guess below framed the
+gap purely as effort-friction (people would compare if it were easier).
+Subject 1's actual account is more specific and more interesting: they
+*already* notice bias reliably ("very [few] times... the news is actually
+depicting what it is"), and their response isn't to seek a second source —
+it's to **disengage entirely**, because they've concluded no source is
+trustworthy ("there is no newspaper which I can trust which shows it as it
+is"). That's not effort-avoidance, it's **learned cynicism**: comparison
+isn't skipped because it's hard, it's skipped because it's believed to be
+pointless. Effort still matters — the one case Subject 1 *does* compare is
+when a second version sits with zero extra navigation, right below the
+first — but effort-reduction alone doesn't address the "why bother, it's
+all biased anyway" belief, which a plain Compare tab doesn't speak to.
+This needs more subjects to confirm as a pattern rather than one person's
+account, but it changes what the product needs to argue, not just what it
+needs to make easy — see Part B2 for the full breakdown.
+
+**Original mechanisms hypothesized, pre-interview** (kept for the record,
+now understood to be incomplete rather than wrong): motivation-behavior gap
+(want balanced news, but comparing isn't the default action); effort
+discounting (a second lookup costs real steps — open another app, search,
+reconcile two versions — against an immediate, already-satisfied "I read
+the news" feeling); habit (the news app/source that's already on the home
+screen wins on autopilot, not consideration); attention (a single-source
+story doesn't visually signal that anything is missing — silence reads as
+completeness, not as a gap).
 
 ---
 
@@ -138,9 +157,36 @@ Seven sections: news-habit warm-up → intention/behavior gap → friction/effor
 → algorithm fatigue/doom-scrolling → social/identity → trust/bias awareness
 → real app screens shown last (so they don't anchor earlier answers).
 
-**This section gets filled in as transcripts arrive** — each major insight
-written as Observation → Behavioral insight → Design implication, per the
-assignment's required format. Nothing here yet.
+**Status: 1 of minimum 5 interviews complete** (Subject 1, transcribed
+2026-09-12). Findings below are real but preliminary — don't treat any
+single-subject pattern as confirmed until more transcripts land, and watch
+specifically for whether later subjects contradict Subject 1 (a heavy news
+consumer or someone who actively cross-checks would be a useful contrast).
+
+**Subject 1 ("Rahul," working professional, non-daily news reader):**
+primary source is Android's Google Discover feed (swipes to it, skims
+headlines, opens what looks interesting) — not a dedicated news app, not a
+daily habit. Last deliberate news search was a month ago, for job-interview
+prep.
+
+| Observation (what was said) | Behavioral insight | Design implication |
+|---|---|---|
+| "I don't think I always get one side... both sides are extreme... there is very less [sic] number of times [when] I feel the news is actually depicting what it is." | Bias-*detection* is already strong and largely accurate — this contradicts my Part A draft's assumption that the problem is readers not noticing bias. The real gap is downstream of detection. | Don't design for "help readers notice bias" (already happening); design for what happens *after* they notice it (see next row). |
+| "I just mostly ignore [it]... because I know whatever I try to find, it will be either of the other side... there is no newspaper which I can trust which shows it as it is." | **This is the single biggest revision to Part A.** When this subject suspects bias, the response isn't "seek a second source" — it's **disengage entirely**, driven by a learned belief that *no* source is trustworthy, not that comparison is too effortful. My provisional Part A framed the gap as pure effort-friction; for this subject it's closer to **learned helplessness / cultivated cynicism** — comparison isn't skipped because it's hard, it's skipped because it's believed to be *pointless*. | The app's pitch can't just be "comparison made easy" — it has to counter "there's no point, everyone's biased anyway" specifically. The silence-signal/verdict-pill pattern (showing a *specific, checkable* claim was verified) is actually well-suited to this, more than the Compare tab alone: it's evidence *against* "nothing is trustworthy," not just a lower-effort version of a search this subject had already given up on. |
+| "If there is... the same news, but written by a different author... right below that, then that might be something I'd prefer... rather than going back entirely and going manually." | Confirms the effort hypothesis, but the bar is razor-thin: adjacency with literally zero navigation is what makes comparison happen at all. Anything requiring even one extra tap/app-switch reverts to the ignore-it default. | Validates the Compare tab's actual design (comparison sources sit on the same card, zero extra navigation) — this is the right mechanism, just needs the framing above added. |
+| "I would love to skim through news which satisfies more with my understanding and ideology. If I find news against what I believe... mostly I don't try to look at that page anymore... but I think everybody has that bias." | Self-aware confirmation bias / selective exposure — actively closes tabs on disconfirming information, and explicitly normalizes it ("everybody has that bias") rather than treating it as a personal flaw to fix. | A design that lectures ("you're being biased!") will likely bounce off self-normalized behavior. Neutral, factual framing (verdict pills, ownership flags) that doesn't moralize is more likely to land than anything that reads as a corrective. |
+| "I decide to trust a news story if it aligns with what I'm thinking. If it does not, I may look for a different channel... where it is confirming my biases." | Trust heuristic is confirmation-driven, not source-quality-driven — directly extends Part C.4's System-1 argument: the heuristic in use isn't "is this outlet reliable," it's "does this match what I already believe." | The ownership-flag/score cues need to compete with a *stronger*, already-dominant heuristic (agreement-with-prior-belief), not an absence of any heuristic. This is a harder problem than Part C.4's draft assumed. |
+| "We just try to confirm the biases that we have... we tend to look for news that's going to prove our points, not what is the actual truth." (re: disagreements with friends/family) | Same confirmation-bias mechanism extends to social conflict resolution, not just solo reading — motivated reasoning is the norm in disputes, not the exception. | Strengthens Part F: a shareable badge/compass position could function as social ammunition ("see, I'm balanced, you're not") rather than genuine reflection — a real risk worth naming, not just the reference-group tension already in Part F. |
+| "Yes, it really matters to me that people know I'm someone who stays updated and has proper knowledge." | Direct confirmation of Part F's identity-signaling premise — being seen as informed is a real, acknowledged motivator, not a projection. | Supports the compass badge's core bet. |
+| Shown the app: "What is the single source? At first glance I am not able to understand." / "What are these badges and where are the badges?" | **Real, independent confirmation of today's own UI complaint** (raised before this transcript existed) — "Single source" is not self-explanatory without a guide, and the compass badge was not discoverable on first look. | Already acted on today (compass promoted to a banner; Single source relabeled as a secondary link) — this transcript is corroborating evidence the change was warranted, not the reason it was made. Worth explicitly citing this convergence in the write-up. |
+| "If it is something more, maybe gamified rather than just simply reading, then yes, I might [use it]." | **Real tension with Part E's design decision.** Part E explicitly chose no streaks/points/leaderboards, reasoning that gamification risks crowding out intrinsic motivation. This subject says the *opposite* would be what gets them to actually use the app. | Don't quietly resolve this — it's a genuine, evidenced trade-off. Keep Part E's reasoning (the risk is real and worth stating), but explicitly cite this subject as evidence the trade-off has a real adoption cost, not just a theoretical one. A future direction (not built) could be light, optional gamification that doesn't touch the compass badge itself. |
+| "Certain information we get from our friends and relatives as well... my first point of information was my friend — that's something you missed." | Word-of-mouth is a real news-discovery channel the app doesn't address at all (it only competes with apps/feeds, not interpersonal information flow). | Legitimate scope gap, not a bug — worth naming as a limitation rather than pretending the app covers the full news-discovery landscape. |
+| "Can't I see what other people voted before me voting?" (re: outlet-lean polls, deliberately hidden pre-vote to avoid anchoring) | Curiosity for social proof exists even where the design deliberately withholds it for a good reason (anti-anchoring). | The pre-vote blind design is correct CB practice (avoiding a social-proof anchor before an honest response) — this is a case where the *right* design choice will still generate user friction, worth naming as a deliberate, defensible trade-off rather than something to "fix." |
+
+**Not yet interviewed:** a heavy/daily news consumer, someone who already
+cross-checks sources, and someone who gets news mostly secondhand from
+friends (ironically the channel Subject 1 flagged as missing) — recruiting
+across this range still matters, one subject is not the modal pattern.
 
 ---
 
@@ -240,6 +286,17 @@ trying to convert news-reading into a deliberate research activity.
   product is trying to serve. This is a real design trade-off, not a free
   win: it likely costs some retention/engagement relative to a
   streak-gamified version, made deliberately.
+- **This trade-off now has real evidence against it, not just theory.**
+  Subject 1 (Part B2), when asked if they'd use the app, said no — unless
+  "it is something more, maybe gamified rather than just simply reading."
+  That's exactly the cost this section predicted, now confirmed by an
+  actual person rather than assumed. Kept the no-gamification decision
+  anyway (the reasoning above still holds, and n=1 shouldn't overturn a
+  deliberate philosophy), but this is not a costless choice — it's a real
+  adoption trade-off, made with eyes open. Worth re-checking once more
+  interviews land: if this turns out to be the modal reaction rather than
+  one subject's, that's a genuine finding worth confronting directly in
+  the write-up's conclusion rather than explaining away.
 
 ---
 

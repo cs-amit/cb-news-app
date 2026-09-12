@@ -43,3 +43,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Raw interview recordings/transcripts (real people's voices/words) -- this
+# repo is public. Only anonymized, pseudonym'd insights belong in
+# docs/research/, never the verbatim source material.
+/Interiew_Recordings
