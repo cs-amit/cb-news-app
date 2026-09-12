@@ -197,7 +197,19 @@ fatigue/doom-scrolling → social/identity → trust/bias awareness → real app
 screens shown **last** (so they don't anchor earlier answers). Consent
 obtained verbally before recording; participants referred to by pseudonym.
 
-**Status: 1 of minimum 5 interviews complete.** Subject 1 ("Rahul,"
+**Second persona, "Meera," 24, Master's in Sociology, avid daily reader**
+(grounded directly in Subject 2 below): reads a newspaper every morning,
+plus a headlines app, Instagram, Telegram, TV. Checks news 2-3x/day
+deliberately. Wants to understand *why* a story is framed a certain way,
+not just what happened. Actively resents algorithmic curation as a loss of
+agency. Maintains a mental "list of authors" by known political lean and
+deliberately reads across them — manual triangulation as a practiced
+skill. **Provisional read at n=2: Ananya and Meera may be two ends of a
+real segment split (disengaged-cynic vs. active-triangulator) rather than
+one modal persona** — see the contrast note after the Subject 2 table
+below.
+
+**Status: 2 of minimum 5 interviews complete.** Subject 1 ("Rahul,"
 working professional, non-daily news reader — primary source is Android's
 Google Discover feed, not a dedicated news app; last deliberate news search
 was a month ago, for job-interview prep). Findings below are real but
@@ -217,8 +229,32 @@ preliminary.
 | "Certain information we get from our friends and relatives as well... my first point of information was my friend — that's something you missed." | Word-of-mouth is a real news-discovery channel the app doesn't address at all. | Legitimate scope gap, not a bug — the app competes with apps/feeds, not interpersonal information flow. |
 | "Can't I see what other people voted before me voting?" (re: outlet polls, deliberately hidden pre-vote) | Curiosity for social proof exists even where deliberately withheld for a good reason (anti-anchoring). | The blind-vote design is correct CB practice — a case where the *right* choice still generates friction, a defensible trade-off, not a bug to fix. |
 
-**Not yet interviewed:** a heavy/daily news consumer, someone who already
-cross-checks sources, someone who gets news mostly secondhand from friends.
+**Subject 2 ("Meera," 24F, Master's in Sociology, avid daily reader) — the
+opposite of Subject 1 on almost every axis that matters:**
+
+| Observation | Behavioral insight | Design implication |
+|---|---|---|
+| "I have a list of authors... I'll read someone who writes for it, then I'll form my own opinion." | She already does, manually, what the Compare tab automates — triangulation as a practiced skill, not something she needs to be taught. | The pitch for this segment is "stop doing this by hand," not "learn to compare." Her mental model is author-level, not outlet-level — a real gap vs. the app's outlet-level scoring. |
+| "This would depend on the content... government policy I'd check [official sources]... outside India, world newspapers... Bollywood, Instagram." | Source-checking is topic-contingent, not a fixed trait. | A single undifferentiated "Compare" affordance may undersell itself here. |
+| "It's a head space thing... if it's for leisure, you just leave it... it takes time." | Friction-tolerance is mode-dependent (leisure vs. research), not a fixed personal trait. | The existing zero-navigation-adjacency design is right for the harder (leisure) case too. |
+| "It's the algorithm that shapes what we read... it hampers individual agency... creates a black box." | Strongest, most articulate unprompted validation of the anti-algorithm philosophy found in either interview. | Quote directly in Part F — this isn't just internal philosophy, a real user names the exact harm it counters. |
+| "When I share [news] with them, they find it interesting and share with others — it creates a change." | An active amplifier, unlike Subject 1 (who discusses "incidents," not news-as-such). | Natural early-adopter for the shareable-badge growth loop — already primed to share with attached framing. |
+| "We tend to fact-check, and realize either one of us was wrong, or maybe both are right." (re: disagreements) | Directly contradicts Subject 1 ("we just try to prove our own point") — fact-check-forward, not motivated-reasoning-forward. | Real evidence the population isn't monolithic on this dimension. |
+| "It gives me a sense of validation... makes me feel respected because of the knowledge currency that I have." | Cleanest direct statement of the identity/social-capital premise found in either interview — "knowledge currency" is near-verbatim the course's own framing. | Strongest available quote for Part F. |
+| "I've read articles that made me create a negative bias towards the author... I never read that author again... on any platform." | Durable, author-level (not outlet-level) trust judgment, persists across platforms. | Same author-level gap as above — retrieval-cue mechanism is real, possibly mis-scoped at the outlet level for sophisticated readers. |
+| "I guess 30% of the time [I know ownership]... No, it doesn't impact me that much." | Real complication for ownership-flagging: partial awareness already exists and doesn't move her trust judgment. | Don't assume the ownership-flag mechanism holds uniformly — may be redundant for already-sophisticated readers. Flag directly on the CB Theory Map. |
+
+**The real finding at n=2 is the contrast itself, not either account
+alone:** Subject 1 responds to suspected bias with disengagement; Subject 2
+responds with active, effortful triangulation and already does by hand
+close to what the Compare tab automates. If this divergence holds, the
+product may need two value propositions ("evidence against your cynicism"
+vs. "stop doing this manually") rather than one pitch assuming a uniform
+starting behavior.
+
+**Not yet interviewed:** someone who gets news mostly secondhand from
+friends (a channel Subject 1 flagged as missing), and a third data point to
+see which pattern above is closer to modal.
 
 ---
 
