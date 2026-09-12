@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
@@ -92,30 +92,69 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
       </View>
     );
 
+  const displayPosition = isOwnProfile ? (ownProfile?.compass_position ?? null) : profile.compass_position;
+  const card = {
+    marginTop: 16,
+    padding: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  } as const;
+
   return (
-    <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
-      <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.textPrimary }}>
-        @{profile.handle}
-      </Text>
-      {isOwnProfile && ownProfile && ownProfile.streak_count > 0 ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 }}>
-          <Ionicons name="flame" size={16} color={colors.red} />
-          <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
-            {ownProfile.streak_count}-day streak · {ownProfile.sides_seen_total} sides seen
-          </Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.surfaceElevated }}>
+      <View style={{ padding: 16 }}>
+        {/* Identity header: avatar + handle + streak, one visual unit
+            instead of loose stacked text. */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 14,
+            padding: 18,
+            borderRadius: 14,
+            backgroundColor: colors.navy,
+          }}
+        >
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              backgroundColor: colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="person" size={26} color={colors.background} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 20, fontFamily: fonts.headline, color: colors.background }}>
+              @{profile.handle}
+            </Text>
+            {isOwnProfile && ownProfile && ownProfile.streak_count > 0 ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
+                <Ionicons name="flame" size={14} color="#F5A15C" />
+                <Text style={{ fontSize: 12.5, fontFamily: fonts.ui, color: "#D6DEEB" }}>
+                  {ownProfile.streak_count}-day streak · {ownProfile.sides_seen_total} sides seen
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-      ) : null}
-      {/* Own profile uses the real, ungated position (fetchProfile reads the
-          owner-only profiles table directly) -- profile.compass_position
-          comes from the public_profiles view, which nulls it out whenever
-          compass_public is off. Without this, an owner who has taken the
-          quiz but never toggled compass_public couldn't see their OWN
-          result on their OWN profile, which is the bug this fixes. */}
-      {(() => {
-        const displayPosition = isOwnProfile ? (ownProfile?.compass_position ?? null) : profile.compass_position;
-        if (displayPosition === null) return null;
-        return (
-          <View style={{ marginTop: 12 }}>
+
+        {/* Own profile uses the real, ungated position (fetchProfile reads
+            the owner-only profiles table directly) -- profile.compass_position
+            comes from the public_profiles view, which nulls it out whenever
+            compass_public is off. Without this, an owner who has taken the
+            quiz but never toggled compass_public couldn't see their OWN
+            result on their OWN profile, which is the bug this fixes. */}
+        {displayPosition !== null ? (
+          <View style={card}>
+            <Text style={{ fontSize: 11, fontWeight: "600", letterSpacing: 0.6, color: colors.primary, textTransform: "uppercase", marginBottom: 10 }}>
+              Compass
+            </Text>
             <CompassGauge position={displayPosition} />
             {isOwnProfile && ownCompassStats ? (
               <>
@@ -129,60 +168,81 @@ export function ProfileScreenBody({ handle }: { handle: string }) {
               </>
             ) : null}
             {isOwnProfile ? (
-              <View style={{ marginTop: 20 }}>
+              <View style={{ marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderColor: colors.border }}>
                 <ShareableCompassBadge handle={profile.handle} position={displayPosition} />
               </View>
             ) : null}
           </View>
-        );
-      })()}
-      {isOwnProfile ? (
-        <Pressable
-          onPress={() => router.push("/quiz")}
-          style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 6 }}
-        >
-          <Ionicons name="compass-outline" size={14} color={colors.primary} />
-          <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz</Text>
-        </Pressable>
-      ) : null}
-      <Text style={{ marginTop: 20, fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>
-        {isOwnProfile ? "Your lists" : "Public lists"}
-      </Text>
-      <FlatList
-        data={lists}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        ) : null}
+        {isOwnProfile ? (
           <Pressable
-            onPress={() => router.push(`/list/${item.id}`)}
-            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}
+            onPress={() => router.push("/quiz")}
+            style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 6 }}
           >
-            <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>{item.name}</Text>
-            {item.description ? (
-              <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary }}>{item.description}</Text>
-            ) : null}
-            {!item.is_public ? (
-              <Text style={{ fontSize: 11, fontFamily: fonts.ui, color: colors.red }}>Private</Text>
-            ) : null}
+            <Ionicons name="compass-outline" size={14} color={colors.primary} />
+            <Text style={{ fontFamily: fonts.ui, color: colors.primary }}>Retake the quiz</Text>
           </Pressable>
-        )}
-        ListEmptyComponent={
-          <View style={{ alignItems: "center", gap: 8, marginTop: 16 }}>
-            <Ionicons name="list-outline" size={28} color={colors.textSecondary} />
-            <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary }}>No lists yet.</Text>
-          </View>
-        }
-      />
-      {isOwnProfile ? (
-        <Pressable
-          onPress={() => router.push("/methodology")}
-          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingVertical: 4 }}
-        >
-          <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
-          <Text style={{ fontSize: 12, fontFamily: fonts.ui, color: colors.textSecondary }}>
-            How are these badges calculated? Methodology
+        ) : null}
+
+        <View style={card}>
+          <Text style={{ fontSize: 11, fontWeight: "600", letterSpacing: 0.6, color: colors.primary, textTransform: "uppercase", marginBottom: 6 }}>
+            {isOwnProfile ? "Your lists" : "Public lists"}
           </Text>
-        </Pressable>
-      ) : null}
-    </View>
+          <FlatList
+            data={lists}
+            scrollEnabled={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => router.push(`/list/${item.id}`)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Ionicons
+                  name={item.is_public ? "list-outline" : "lock-closed-outline"}
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: fonts.uiSemiBold, color: colors.textPrimary }}>{item.name}</Text>
+                  {item.description ? (
+                    <Text style={{ fontSize: 12.5, fontFamily: fonts.ui, color: colors.textSecondary }}>
+                      {item.description}
+                    </Text>
+                  ) : null}
+                </View>
+                {!item.is_public ? (
+                  <Text style={{ fontSize: 11, fontFamily: fonts.uiSemiBold, color: colors.red }}>Private</Text>
+                ) : null}
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              <View style={{ alignItems: "center", gap: 8, paddingVertical: 16 }}>
+                <Ionicons name="list-outline" size={28} color={colors.textSecondary} />
+                <Text style={{ fontFamily: fonts.ui, color: colors.textSecondary }}>No lists yet.</Text>
+              </View>
+            }
+          />
+        </View>
+
+        {isOwnProfile ? (
+          <Pressable
+            onPress={() => router.push("/methodology")}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 20, paddingVertical: 4 }}
+          >
+            <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
+            <Text style={{ fontSize: 12, fontFamily: fonts.ui, color: colors.textSecondary }}>
+              How are these badges calculated? Methodology
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </ScrollView>
   );
 }
